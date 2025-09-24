@@ -16,6 +16,7 @@ function App() {
           loop
           muted
           playsInline
+          controls={false}
           style={{
             position: 'absolute',
             top: '64px', // height of header
@@ -26,7 +27,8 @@ function App() {
             display: 'block',
             border: 'none',
             background: '#000',
-            zIndex: 0
+            zIndex: 0,
+            pointerEvents: 'none'
           }}
         >
           <source src="/promo.mp4" type="video/mp4" />
