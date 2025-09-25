@@ -6,14 +6,32 @@
 }
 
 /* container */
-.site-header{
-  position:fixed;
-  top:0; left:0; right:0;
-  height:var(--header-h);
-  background: linear-gradient(180deg,#ffffff, #edf5fb);
-  z-index:1000;
-  display:flex;
-  align-items:center;
+/* Trạng thái mặc định: trong suốt */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-h);
+  background-color: transparent; /* Nền trong suốt */
+  box-shadow: none; /* Không có bóng */
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Hiệu ứng chuyển đổi mượt mà */
+}
+
+/* Trạng thái khi di chuột vào: hiện màu và đổ bóng */
+.site-header:hover {
+  background-color: rgba(255, 255, 255, 0.9); /* Màu nền trắng, hơi trong suốt */
+  box-shadow: 0 6px 20px rgba(238, 239, 246, 0.5); /* Đổ bóng */
+}
+
+/* Nếu muốn giữ lại hiệu ứng đổi màu khi cuộn trang, 
+  hãy thêm đoạn này để nó ưu tiên hơn hiệu ứng hover
+*/
+.site-header.scrolled {
+  background-color: rgba(255, 255, 255, 0.9);
   box-shadow: 0 6px 20px rgba(238, 239, 246, 0.5);
 }
 
@@ -69,7 +87,8 @@
   text-decoration:none;
   padding:8px 10px;
   border-radius:8px;
-  font-weight:600;
+  font-weight:700;
+  font-style: initial;
 }
 
 .nav-link:hover{ color:#165ba0; background: rgba(255,255,255,0.02); transform:translateY(-1px); }
@@ -95,3 +114,4 @@
   .menu-btn{ display:flex; }
   .brand-title{ font-size:16px; }
 }
+

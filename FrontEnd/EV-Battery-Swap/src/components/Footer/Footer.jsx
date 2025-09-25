@@ -10,29 +10,20 @@ export default function Footer() {
         <div className="footer-col">
           <h2 className="footer-logo">MyBrand</h2>
           <ul className="social-links">
-            <li><a href="#">Facebook</a></li>
-            <li><a href="#">Youtube</a></li>
-            <li><a href="#">Twitter</a></li>
+            <li><a href="#">Facebook</a></li> 
             <li><a href="#">Instagram</a></li>
-            <li><a href="#">LinkedIn</a></li>
           </ul>
         </div>
 
-        {/* Smart Energy */}
-        <div className="footer-col">
-          <h4>Smart Energy</h4>
-          <ul>
-            <li><a href="#">Swap & Go</a></li>
-          </ul>
-        </div>
+        
 
         {/* Smart Vehicles */}
         <div className="footer-col">
           <h4>Smart Vehicles</h4>
           <ul>
-            <li><a href="#">Gogoro Pulse</a></li>
-            <li><a href="#">Gogoro Delight</a></li>
-            <li><a href="#">Gogoro CrossOver</a></li>
+            <li><a href="#"> Pulse</a></li>
+            <li><a href="#"> Delight</a></li>
+            <li><a href="#"> CrossOver</a></li>
           </ul>
         </div>
 
