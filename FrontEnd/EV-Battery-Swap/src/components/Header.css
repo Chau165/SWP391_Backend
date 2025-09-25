@@ -10,11 +10,11 @@
   position:fixed;
   top:0; left:0; right:0;
   height:var(--header-h);
-  background: linear-gradient(180deg,#071226, #071826);
+  background: linear-gradient(180deg,#ffffff, #edf5fb);
   z-index:1000;
   display:flex;
   align-items:center;
-  box-shadow: 0 6px 20px rgba(2,6,23,0.5);
+  box-shadow: 0 6px 20px rgba(238, 239, 246, 0.5);
 }
 
 /* inner layout: brand left, nav centered, actions right */
@@ -41,7 +41,11 @@
   z-index:1100;
 }
 .brand-logo{ width:36px; height:36px; object-fit:contain; }
-.brand-title{ font-size:18px; }
+.brand-title{
+   font-size:18px;
+   color: #165ba0;
+   }
+
 
 /* center nav: absolutely centered so it stays middle regardless of left/right widths */
 .nav-wrapper{
@@ -59,14 +63,16 @@
   gap:18px;
   align-items:center;
 }
-.nav-link{
-  color:var(--muted);
+/*chỉnh màu của Header: Home, AboutUs,.....*/
+.nav-link{ 
+  color:#dcdce4; 
   text-decoration:none;
   padding:8px 10px;
   border-radius:8px;
   font-weight:600;
 }
-.nav-link:hover{ color:#fff; background: rgba(255,255,255,0.02); transform:translateY(-1px); }
+
+.nav-link:hover{ color:#165ba0; background: rgba(255,255,255,0.02); transform:translateY(-1px); }
 
 /* actions (right) */
 .actions{ display:flex; align-items:center; gap:12px; z-index:1100; }
