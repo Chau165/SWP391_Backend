@@ -1,12 +1,22 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import logo from '../assets/react.svg'
 import './Header.css'
-
+/* edit khi lăn chuột thì thanh header sẽ hiện*/ 
 export default function Header() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <header className="site-header">
+    <header className={`site-header ${scrolled ? 'scrolled' : ''}`}>
+      
       <div className="header-inner">
-        <a className="brand" href="/" aria-label="home">
+        <a className="brand" href="/" aria-label="home"> 
           <img src={logo} alt="" className="brand-logo" />
           <span className="brand-title">EV Battery Swap</span>
         </a>
@@ -26,5 +36,6 @@ export default function Header() {
         </div>
       </div>
     </header>
+    
   )
 }
