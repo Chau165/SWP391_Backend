@@ -1,88 +1,86 @@
-import React, { useEffect, useState } from 'react'
-import './LoginModal.css'
+import React, { useRef, useEffect } from 'react';
+import './LoginModal.css';
 
-export default function LoginModal({ visible, onClose, onSuccess, apiBase = '/api/auth' }) {
-  const [mode, setMode] = useState('login') // 'login' | 'register'
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+/**
+ * Component LoginModal
+ * @param {boolean} isOpen - Trạng thái hiển thị modal
+ * @param {function} onClose - Hàm đóng modal
+ */
+export default function LoginModal({ isOpen, onClose }) {
+  const modalRef = useRef();
 
+  // Logic đóng modal khi click ra ngoài (backdrop)
   useEffect(() => {
-    if (visible) document.body.style.overflow = 'hidden'
-    else document.body.style.overflow = ''
-    const onKey = (e) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = ''
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [visible, onClose])
+    if (!isOpen) return;
 
-  if (!visible) return null
-
-  const submit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    try {
-      const endpoint = mode === 'login' ? `${apiBase}/login` : `${apiBase}/register`
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data?.message || 'Request failed')
-      } else {
-        if (onSuccess) onSuccess(data)
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
       }
-    } catch (err) {
-      setError('Network error')
-    } finally {
-      setLoading(false)
-    }
-  }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null; // Không hiển thị gì nếu modal đóng
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Logic đăng nhập sẽ ở đây
+    alert('Đăng nhập thành công! (Mock)');
+    onClose();
+  };
 
   return (
-    <div className="lm-overlay" onMouseDown={onClose} role="dialog" aria-modal="true" aria-label="Auth dialog">
-      <div className="lm-modal" onMouseDown={(e) => e.stopPropagation()}>
-        <button className="lm-close" onClick={onClose} aria-label="Close">×</button>
-        <h3>{mode === 'login' ? 'Login' : 'Register'}</h3>
+    // Backdrop mờ toàn màn hình
+    <div className="modal-backdrop">
+      {/* Modal chính */}
+      <div className="login-modal" ref={modalRef}>
+        <button className="close-btn" onClick={onClose} aria-label="Đóng">
+          &times;
+        </button>
+        
+        <h2 className="modal-title">Đăng nhập</h2>
+        <p className="modal-subtitle">Chào mừng trở lại. Vui lòng nhập thông tin của bạn.</p>
 
-        <form onSubmit={submit} className="lm-form">
-          <label>
-            Email
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-          </label>
+        <form className="login-form" onSubmit={handleSubmit}>
+          
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input 
+              type="email" 
+              id="email" 
+              placeholder="Nhập email của bạn" 
+              required 
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="password">Mật khẩu</label>
+            <input 
+              type="password" 
+              id="password" 
+              placeholder="Nhập mật khẩu" 
+              required 
+            />
+          </div>
 
-          <label>
-            Password
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
-          </label>
+          <div className="form-options">
+            <a href="#" className="forgot-password">Quên mật khẩu?</a>
+          </div>
 
-          {error && <div className="lm-error">{error}</div>}
-
-          <button type="submit" className="lm-btn" disabled={loading}>
-            {loading ? 'Please wait...' : (mode === 'login' ? 'Sign in' : 'Create account')}
+          <button type="submit" className="login-button">
+            Đăng nhập
           </button>
         </form>
-
-        <div className="lm-switch">
-          {mode === 'login' ? (
-            <>
-              <span>Don't have an account?</span>
-              <button className="lm-link" onClick={() => setMode('register')}>Register</button>
-            </>
-          ) : (
-            <>
-              <span>Already have an account?</span>
-              <button className="lm-link" onClick={() => setMode('login')}>Login</button>
-            </>
-          )}
-        </div>
+        
+        <p className="signup-link">
+            Chưa có tài khoản? <a href="#">Đăng ký ngay</a>
+        </p>
       </div>
     </div>
-  )
+  );
 }

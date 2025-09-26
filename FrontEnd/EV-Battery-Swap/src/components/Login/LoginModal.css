@@ -1,26 +1,131 @@
-.lm-overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.45);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:3000;
-  padding:20px;
+/* 1. Backdrop làm mờ nền */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7); /* Nền đen mờ */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000; /* Đảm bảo modal nằm trên tất cả (kể cả Header) */
 }
-.lm-modal{
-  width:100%;
-  max-width:420px;
-  background:#fff;
-  border-radius:10px;
-  padding:20px;
-  box-shadow:0 20px 50px rgba(0,0,0,0.3);
-  position:relative;
+
+/* 2. Khung Modal chính */
+.login-modal {
+    background-color: #ffffff;
+    padding: 40px 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 400px; /* Giới hạn chiều rộng trên màn hình lớn */
+    position: relative;
+    animation: fadeIn 0.3s ease-out;
 }
-.lm-close{ position:absolute; right:10px; top:8px; background:none; border:none; font-size:22px; cursor:pointer; }
-.lm-form{ display:flex; flex-direction:column; gap:12px; margin-top:6px; }
-.lm-form input{ width:100%; padding:10px; border:1px solid #dcdce4; border-radius:8px; }
-.lm-btn{ background:#165ba0; color:#fff; padding:10px; border-radius:8px; border:none; cursor:pointer; font-weight:700; }
-.lm-error{ color:#b00020; font-size:14px; text-align:center; }
-.lm-switch{ margin-top:12px; display:flex; gap:8px; align-items:center; justify-content:center; }
-.lm-link{ background:none; border:none; color:var(--accent, #165ba0); cursor:pointer; font-weight:700; }
+
+/* Hiệu ứng mờ dần khi mở modal */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* 3. Nút Đóng */
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #888;
+    line-height: 1;
+    padding: 5px;
+}
+.close-btn:hover {
+    color: #333;
+}
+
+/* 4. Tiêu đề và Phụ đề */
+.modal-title {
+    font-size: 28px;
+    color: #165ba0;
+    margin-bottom: 8px;
+}
+.modal-subtitle {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 25px;
+}
+
+/* 5. Form và Input */
+.form-group {
+    margin-bottom: 18px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+.form-group input:focus {
+    border-color: #34d399; /* Màu accent */
+    outline: none;
+}
+
+/* 6. Tùy chọn và Link */
+.form-options {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 25px;
+}
+.forgot-password {
+    font-size: 14px;
+    color: #165ba0;
+    text-decoration: none;
+}
+.forgot-password:hover {
+    text-decoration: underline;
+}
+
+/* 7. Nút Đăng nhập chính */
+.login-button {
+    width: 100%;
+    background: linear-gradient(90deg, #6ee7b7, #34d399); /* Sử dụng màu accent của Header */
+    color: #071019;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    transition: opacity 0.3s;
+}
+.login-button:hover {
+    opacity: 0.9;
+}
+
+/* 8. Link đăng ký */
+.signup-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #666;
+}
+.signup-link a {
+    color: #165ba0;
+    text-decoration: none;
+}
+.signup-link a:hover {
+    text-decoration: underline;
+}
