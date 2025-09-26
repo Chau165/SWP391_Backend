@@ -1,0 +1,26 @@
+.lm-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:3000;
+  padding:20px;
+}
+.lm-modal{
+  width:100%;
+  max-width:420px;
+  background:#fff;
+  border-radius:10px;
+  padding:20px;
+  box-shadow:0 20px 50px rgba(0,0,0,0.3);
+  position:relative;
+}
+.lm-close{ position:absolute; right:10px; top:8px; background:none; border:none; font-size:22px; cursor:pointer; }
+.lm-form{ display:flex; flex-direction:column; gap:12px; margin-top:6px; }
+.lm-form input{ width:100%; padding:10px; border:1px solid #dcdce4; border-radius:8px; }
+.lm-btn{ background:#165ba0; color:#fff; padding:10px; border-radius:8px; border:none; cursor:pointer; font-weight:700; }
+.lm-error{ color:#b00020; font-size:14px; text-align:center; }
+.lm-switch{ margin-top:12px; display:flex; gap:8px; align-items:center; justify-content:center; }
+.lm-link{ background:none; border:none; color:var(--accent, #165ba0); cursor:pointer; font-weight:700; }
