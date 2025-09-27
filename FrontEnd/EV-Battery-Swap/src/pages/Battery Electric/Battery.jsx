@@ -13,36 +13,32 @@ function Battery() {
         />
         <div className="hero-content">
           <h1>EV Battery Solutions</h1>
-          <p>Powering the Future of Mobility</p>
         </div>
       </div>
 
       {/* GIỚI THIỆU VỀ GIẢI PHÁP */}
       <section className="intro-section">
-        <h2>GIỚI THIỆU VỀ GIẢI PHÁP</h2>
+        <h2>ABOUT THE SOLUTION</h2>
         <div className="intro-cards">
           <div className="card">
-            <img src="/img-batte.jpg" alt="Pin cho xe điện" />
-            <h3>PIN DÀNH CHO XE ĐIỆN</h3>
+            <img src="/img-battery3.jpg" alt="Pin cho xe điện" />
+            <h3> ELECTRIC MOBILITY SOLUTION</h3>
             <p>
-              Pin dành cho xe điện với độ bền cao, an toàn, hiệu suất ổn định.
-              Hỗ trợ nhiều dòng xe điện hiện nay.
+            This represents an advanced mobility model that completely eliminates the need for traditional battery charging.
             </p>
           </div>
           <div className="card">
-            <img src="/img-battery-energy.jpg" alt="Pin năng lượng" />
-            <h3>PIN CHO ỨNG DỤNG NĂNG LƯỢNG</h3>
+            <img src="/img-battery4.jpg" alt="Pin năng lượng" />
+            <h3>ENERGY STORAGE AND SWAPPING SYSTEM</h3>
             <p>
-              Đáp ứng nhu cầu lưu trữ điện năng, UPS, năng lượng tái tạo,
-              ứng dụng dân dụng & công nghiệp.
+                 SwappingStation—an automated energy storage cabinet that functions as an energy vending machine.
             </p>
           </div>
           <div className="card">
-            <img src="/img-battery-custom.jpg" alt="Pin đối tác" />
-            <h3>PIN THEO NHU CẦU ĐỐI TÁC</h3>
+            <img src="/img-battery2.jpg" alt="Pin đối tác" />
+            <h3>DESIGN AND BATTERY TECHNOLOGY DETAILS</h3>
             <p>
-              Pin được thiết kế theo yêu cầu riêng, hỗ trợ nhiều loại cell
-              như LFP, NCM, tùy chỉnh linh hoạt.
+                The close-up image of the batteries (or battery slots) highlights the standardized, sleek, and durable product design.
             </p>
           </div>
         </div>
@@ -50,12 +46,12 @@ function Battery() {
 
       {/* DỰ ÁN PIN TIÊU BIỂU */}
       <section className="project-section">
-        <h2>NỀN TẢNG QUẢN LÝ PIN THÔNG MINH</h2>
+        <h2>The most advanced energy platform for Electric Vehicle</h2>
         <h3>DỰ ÁN PIN TIÊU BIỂU</h3>
 
         <div className="project-cards">
           <div className="project">
-            <img src="/img-project-ev.jpg" alt="Pin xe điện" />
+            <img src="/img-bat.jpg" alt="Pin xe điện" />
             <div className="text">
               <h3>PIN CÔNG NGHỆ CAO DÀNH CHO XE ĐIỆN</h3>
               <p>
