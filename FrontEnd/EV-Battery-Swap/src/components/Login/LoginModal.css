@@ -66,17 +66,20 @@
 .form-group label {
     display: block;
     margin-bottom: 5px;
+    margin-left: 2px;
     font-weight: 600;
     color: #333;
     font-size: 14px;
 }
 .form-group input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
+    width: 90%;
+    padding: 12px 5%;
+    border: 3px solid #ddd;
+    
     border-radius: 8px;
     font-size: 16px;
     transition: border-color 0.3s;
+    
 }
 .form-group input:focus {
     border-color: #34d399; /* Màu accent */
@@ -104,6 +107,7 @@
     background: linear-gradient(90deg, #6ee7b7, #34d399); /* Sử dụng màu accent của Header */
     color: #071019;
     padding: 12px;
+    margin-bottom: 10px;
     border: none;
     border-radius: 10px;
     font-weight: 700;
