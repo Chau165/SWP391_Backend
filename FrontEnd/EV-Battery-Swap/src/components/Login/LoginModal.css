@@ -129,3 +129,21 @@
 .signup-link a:hover {
     text-decoration: underline;
 }
+/* Style cho thông báo lỗi */
+.error-message {
+    color: #e53e3e; /* Màu đỏ */
+    font-size: 14px;
+    margin-top: -10px; /* Dịch lên gần form */
+    margin-bottom: 15px;
+    text-align: center;
+    padding: 8px;
+    border: 1px solid #fed7d7;
+    border-radius: 6px;
+    background-color: #fff5f5;
+}
+
+/* Style cho nút khi đang tải */
+.login-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

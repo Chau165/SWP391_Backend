@@ -1,5 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import './LoginModal.css';
+
 
 /**
  * Component LoginModal
@@ -8,6 +9,21 @@ import './LoginModal.css';
  */
 export default function LoginModal({ isOpen, onClose }) {
   const modalRef = useRef();
+
+  //State để lưu trữ Email và Mật khẩu
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+
+  //State để quản lý lỗi và trạng thái tải
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Hàm xử lý thay đổi input
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
 
   // Logic đóng modal khi click ra ngoài (backdrop)
   useEffect(() => {
@@ -25,19 +41,48 @@ export default function LoginModal({ isOpen, onClose }) {
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null; // Không hiển thị gì nếu modal đóng
+  if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  // BỔ SUNG 3: Hàm gọi API Đăng nhập
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Logic đăng nhập sẽ ở đây
-    alert('Đăng nhập thành công! (Mock)');
-    onClose();
+    setError(null); // Xóa lỗi cũ
+    setIsLoading(true); // Bắt đầu tải
+
+    try {
+      // ----------------------------------------------------
+      // THAY ĐỔI ĐƯỜNG DẪN API VÀ CÁC HEADER CỦA BẠN TẠI ĐÂY
+      // ----------------------------------------------------
+      const response = await fetch('http://localhost:8080/webAPI/api/login', {
+        method: 'POST',
+        headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ email: "test@example.com", password: "1234" })
+});
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Xử lý thành công: Lưu token, chuyển hướng người dùng
+        alert('Đăng nhập thành công! Token: ' + data.token);
+        // Ví dụ: localStorage.setItem('token', data.token);
+        onClose(); // Đóng modal
+      } else {
+        // Xử lý thất bại: Hiển thị thông báo lỗi từ API
+        setError(data.message || 'Email hoặc mật khẩu không đúng.');
+      }
+    } catch (err) {
+      // Xử lý lỗi kết nối mạng
+      setError('Lỗi kết nối mạng. Vui lòng thử lại.');
+    } finally {
+      setIsLoading(false); // Kết thúc tải
+    }
   };
 
-  return (
-    // Backdrop mờ toàn màn hình
+
+ return (
     <div className="modal-backdrop">
-      {/* Modal chính */}
       <div className="login-modal" ref={modalRef}>
         <button className="close-btn" onClick={onClose} aria-label="Đóng">
           &times;
@@ -55,6 +100,8 @@ export default function LoginModal({ isOpen, onClose }) {
               id="email" 
               placeholder="Nhập email của bạn" 
               required 
+              value={formData.email} // Gắn giá trị state
+              onChange={handleChange} // Xử lý thay đổi
             />
           </div>
           
@@ -65,15 +112,20 @@ export default function LoginModal({ isOpen, onClose }) {
               id="password" 
               placeholder="Nhập mật khẩu" 
               required 
+              value={formData.password} // Gắn giá trị state
+              onChange={handleChange} // Xử lý thay đổi
             />
           </div>
+          
+          {/* BỔ SUNG 4: Hiển thị lỗi */}
+          {error && <p className="error-message">{error}</p>} 
 
           <div className="form-options">
             <a href="#" className="forgot-password">Quên mật khẩu?</a>
           </div>
 
-          <button type="submit" className="login-button">
-            Đăng nhập
+          <button type="submit" className="login-button" disabled={isLoading}>
+            {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
         
