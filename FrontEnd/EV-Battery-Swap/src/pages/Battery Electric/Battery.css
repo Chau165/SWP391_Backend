@@ -1,43 +1,195 @@
 /* src/pages/Battery Electric/Battery.css */
+/* src/pages/Battery Electric/Battery.css */
+
+:root{
+  --header-h:64px;
+  --maxw:1200px;
+  --accent-1:#6ee7b7;
+  --accent-2:#34d399;
+  --brand:#165ba0;
+  --muted:#6b7280;
+  --bg:#f7f8fb;
+  --card-bg:#ffffff;
+  --glass: rgba(255,255,255,0.6);
+  --radius:12px;
+  --shadow-lg: 0 20px 40px rgba(16,24,40,0.08);
+  --shadow-sm: 0 6px 18px rgba(16,24,40,0.06);
+  --fw-regular: 500;
+  --fw-strong: 700;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  --break-lg: 992px;
+  --break-md: 768px;
+}
+/* Cấu trúc chung cho nội dung */
+.container {
+    max-width: 1200px; 
+    margin: 0 auto;
+    padding: 0 20px;
+}
 
 /* 1. HERO SECTION */
 .hero-section {
     position: relative;
     width: 100%;
-
+    /* Chiếm 85% chiều cao của Viewport (Full-height effect) */
+    min-height: 85vh; 
     margin-bottom: 50px;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
 }
 
 .hero-image {
-    width: 100%;
-    height: 450px; 
-    object-fit: cover;
-    display: block;
-}
-
-/* THAY ĐỔI LỚP PHỦ: Căn chỉnh sang trái */
-.hero-overlay {
-    position: absolute;
+    position: absolute; 
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 204.5vh;
+    height: 60vh; 
+    object-fit: cover;
 
-    color: white;
-    /* XÓA: justify-content: center; align-items: center; */
-    
-    display: flex; /* Dùng Flexbox để căn chỉnh theo Container */
+}
+
+/* LỚP PHỦ NỘI DUNG (Text) */
+.hero-overlay {
+    position: relative; 
+    color: white; 
+    display: flex; 
     flex-direction: column;
-    justify-content: center; /* Vẫn căn giữa theo chiều dọc */
-    text-align: left; /* CĂN TRÁI VĂN BẢN */
-    padding: 0 100px; 
-    transform: rotate(); 
+    justify-content: center; 
+    text-align: left; 
+    max-width: 1200px; 
+    width: 100%; 
+    padding: 100px 20px; 
+    margin: 0 auto;
+    min-height: 85vh; 
+    z-index: 1; 
 }
-.battery-page {
-    /* Thêm quy tắc này vào lớp bao bọc chính */
-    overflow-x: hidden; 
+
+/* STYLE MỚI: Dành cho dòng chữ nhỏ ở trên cùng (Subheading) */
+.hero-overlay .hero-subheading {
+    font-size: 20px; 
+    font-weight: 600; 
+    margin-bottom: 5px; 
+    text-transform: uppercase; 
+    max-width: 700px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.hero-overlay h1 {
+    /* Padding-top để đẩy chữ xuống dưới Header cố định */
+    padding-top: 70px; 
+    font-size: 72px; 
+    font-weight: 800; 
+    margin-bottom: 20px; 
+    line-height: 1.1;
+    max-width: 800px; 
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7); 
+}
+
+/* STYLE CHUNG CHO ĐOẠN VĂN BẢN KHÁC (Electric fuel reimagined.) */
+.hero-overlay p {
+    font-size: 20px; 
+    max-width: 700px; 
+    font-weight: 500;
+    text-shadow: 1.5px 1.5px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* 2. OVERVIEW SECTION */
+.overview-section {
+    padding: 60px 0; 
+    background-color: #f7f7f7; /* Màu nền xám nhạt */
+}
+
+/* STYLE CHO TIÊU ĐỀ OVERVIEW */
+.overview-title {
+    text-align: center;
+    color: #000; 
+    font-size: 44px; 
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 50px; 
+    max-width: 800px; 
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* BỐ CỤC 2 CỘT */
+.two-column-layout {
+    display: flex;
+    gap: 40px; 
+    align-items: center; 
+}
+
+.image-col {
+    flex: 1; /* Chiếm 50% */
+}
+
+.overview-image {
+    width: 100%;
+    object-fit: cover; 
+    border-radius: 10px; 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.text-col {
+    flex: 1; /* Chiếm 50% */
+}
+
+.text-col h3 {
+    color: #165ba0; 
+    font-size: 30px;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.text-col p {
+    font-size: 16px;
+    line-height: 1.7;
+    margin-bottom: 15px;
+    color: #333;
 }
 
 
+/* 3. COMPATIBILITY SECTION (Các style cũ giữ nguyên) */
+.compatibility-section {
+    background-color: #f4f7f9;
+    padding: 60px 0;
+    text-align: center;
+}
+
+.compatibility-section h2 {
+    color: #000;
+    margin-bottom: 15px;
+}
+
+
+/* 4. CALL TO ACTION SECTION (Các style cũ giữ nguyên) */
+.cta-section {
+    background-color: #165ba0; 
+    color: white;
+    padding: 50px 0;
+    text-align: center;
+}
+
+.cta-section h3 {
+    font-size: 28px;
+    margin-bottom: 25px;
+}
+
+.cta-button {
+    display: inline-block;
+    background: linear-gradient(90deg, #6ee7b7, #34d399); 
+    color: #071019;
+    padding: 12px 25px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 16px;
+    transition: opacity 0.3s;
+}
+
+.cta-button:hover {
+    opacity: 0.9;
+}
 
 
