@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from 'react-router-dom';
 import logo from "../../assets/react.svg";
 import "./Header.css";
 
@@ -22,39 +23,35 @@ export default function Header({ onLoginClick }) {
 
   return (
     <header
-      // Class sẽ là 'scrolled' nếu cuộn, hoặc 'hovered' nếu di chuột
       className={`site-header ${scrolled ? "scrolled" : hovered ? "hovered" : ""}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <div className="header-inner">
-        <a className="brand" href="/" aria-label="home">
+        <Link className="brand" to="/" aria-label="home">
           <img src={logo} alt="Logo" className="brand-logo" />
           <span className="brand-title">EV Battery Swap</span>
-        </a>
+        </Link>
 
         <nav className="main-nav" aria-label="Primary">
-          <a href="/" className="nav-link">Home</a>
-          <a href="/vehicles" className="nav-link">Battery Electric</a>
-          <a href="/goshare" className="nav-link">Polices</a>
-          <a href="/news" className="nav-link">News</a>
-          <a href="/about" className="nav-link">About Us</a>
+          <Link to="/" className="nav-link">Home</Link>
+          <Link to="/vehicles" className="nav-link">Battery Electric</Link>
+          <Link to="/goshare" className="nav-link">Polices</Link>
+          <Link to="/news" className="nav-link">News</Link>
+          <Link to="/about" className="nav-link">About Us</Link>
         </nav>
-        
-        {/* BỔ SUNG: Phần tử chứa nút Login (đã được định kiểu trong CSS) */}
         <div className="actions">
             <a 
                 href="#" 
                 className="cta login" 
                 onClick={(e) => { 
                     e.preventDefault(); 
-                    onLoginClick(); // Gọi hàm mở Modal
+                    onLoginClick();
                 }}
             >
                 Login
             </a>
         </div>
-        {/* KẾT THÚC BỔ SUNG */}
       </div>
     </header>
   );
