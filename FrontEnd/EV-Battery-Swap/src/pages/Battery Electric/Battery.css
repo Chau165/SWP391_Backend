@@ -1,0 +1,43 @@
+/* src/pages/Battery Electric/Battery.css */
+
+/* 1. HERO SECTION */
+.hero-section {
+    position: relative;
+    width: 100%;
+
+    margin-bottom: 50px;
+}
+
+.hero-image {
+    width: 100%;
+    height: 450px; 
+    object-fit: cover;
+    display: block;
+}
+
+/* THAY ĐỔI LỚP PHỦ: Căn chỉnh sang trái */
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    color: white;
+    /* XÓA: justify-content: center; align-items: center; */
+    
+    display: flex; /* Dùng Flexbox để căn chỉnh theo Container */
+    flex-direction: column;
+    justify-content: center; /* Vẫn căn giữa theo chiều dọc */
+    text-align: left; /* CĂN TRÁI VĂN BẢN */
+    padding: 0 100px; 
+    transform: rotate(); 
+}
+.battery-page {
+    /* Thêm quy tắc này vào lớp bao bọc chính */
+    overflow-x: hidden; 
+}
+
+
+
+
