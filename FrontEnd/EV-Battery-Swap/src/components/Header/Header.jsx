@@ -29,7 +29,8 @@ export default function Header({ onLoginClick }) {
     >
       <div className="header-inner">
         <a className="brand" href="/" aria-label="home">
-          <img src={logo} alt="Logo" className="brand-logo" />Battery Swap
+          <img src={logo} alt="Logo" className="brand-logo" />
+          <span className="brand-title">EV Battery Swap</span>
         </a>
 
         <nav className="main-nav" aria-label="Primary">
