@@ -53,14 +53,15 @@ export default function LoginModal({ isOpen, onClose }) {
       // ----------------------------------------------------
       // THAY ĐỔI ĐƯỜNG DẪN API VÀ CÁC HEADER CỦA BẠN TẠI ĐÂY
       // ----------------------------------------------------
-      const response = await fetch('http://localhost:8080/webAPI/api/login', {
-        method: 'POST',
-        headers: {
-        "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ email: "test@example.com", password: "1234" })
-});
-
+      const response = await fetch('https://74dd58621a21.ngrok-free.app/webAPI/api/login', {
+        method: 'POST',
+        headers: {
+          "Content-Type": "application/json"
+        },
+        // THAY THẾ DỮ LIỆU CỨNG BẰNG BIẾN formData
+        body: JSON.stringify(formData) 
+      });
+      
       const data = await response.json();
 
       if (response.ok) {

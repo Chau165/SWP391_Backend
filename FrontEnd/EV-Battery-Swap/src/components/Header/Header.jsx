@@ -29,13 +29,13 @@ export default function Header({ onLoginClick }) {
     >
       <div className="header-inner">
         <a className="brand" href="/" aria-label="home">
-          <img src={logo} alt="Logo" className="brand-logo" />
+          <img src={logo} alt="Logo" className="brand-logo" />Battery Swap
         </a>
 
         <nav className="main-nav" aria-label="Primary">
-          <a href="/" className="nav-link">Smart Energy</a>
-          <a href="/vehicles" className="nav-link">Smart Vehicles</a>
-          <a href="/goshare" className="nav-link">GoShare</a>
+          <a href="/" className="nav-link">Home</a>
+          <a href="/vehicles" className="nav-link">Battery Electric</a>
+          <a href="/goshare" className="nav-link">Polices</a>
           <a href="/news" className="nav-link">News</a>
           <a href="/about" className="nav-link">About Us</a>
         </nav>
