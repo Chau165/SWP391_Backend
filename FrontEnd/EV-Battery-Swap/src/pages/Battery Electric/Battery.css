@@ -1,3 +1,14 @@
+/* Battery.css */
+
+/* --- Cài đặt cơ bản cho trang --- */
+.battery-page {
+  font-family: Arial, sans-serif;
+  color: #333;
+  /* Đảm bảo nền trắng cho trang, hoặc sử dụng màu nền từ global CSS nếu đã có */
+  background-color: #fff; 
+}
+
+/* --- HERO SECTION (Không thay đổi cấu trúc của bạn) --- */
 .hero {
   position: relative;
   width: 100%;
@@ -11,44 +22,62 @@
 }
 
 .hero-image {
-  max-width: 99vw;   /* nhỏ hơn toàn màn hình một chút */
-  max-height: 85vh;  /* chiều cao cũng nhỏ hơn */
-  object-fit: cover; /* giữ đúng tỉ lệ, không méo ảnh */
+  max-width: 99vw;
+  max-height: 85vh;
+  width: 100%; /* Đảm bảo ảnh luôn chiếm 100% chiều rộng của .hero */
+  height: auto; /* Giữ tỷ lệ */
+  object-fit: cover;
   display: block;
 }
 
 .hero-content {
   position: absolute;
-  top: 30%;
-  left: 53%;
-  transform: translate(-50%, -50%);
+  top: 50%; /* Căn giữa dọc */
+  left: 50%; /* Căn giữa ngang */
+  transform: translate(-50%, -50%); /* Dịch chuyển ngược lại 50% kích thước */
   text-align: center;
-  color: white;
+  color: white; /* Màu chữ trắng */
   width: 100%;
+  max-width: var(--maxw, 1100px); /* Sử dụng biến maxw từ root hoặc giá trị mặc định */
   padding: 0 15px;
+  box-sizing: border-box; /* Bao gồm padding trong chiều rộng */
 }
 
 .hero-content h1 {
-  font-size: 42px;
+  font-size: 48px; /* Tăng kích thước font cho hero title */
   font-weight: bold;
-  margin-inline-start: 50px;
-}
-.battery-page {
-  font-family: Arial, sans-serif;
-  color: #333;
+  margin: 0; /* Đảm bảo không có margin mặc định gây lệch */
+  color: white; /* Đảm bảo màu trắng */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Thêm đổ bóng để dễ đọc trên mọi nền */
 }
 
-/* ===== INTRO SECTION ===== */
+/* Responsive cho Hero Title */
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 32px;
+  }
+}
+@media (max-width: 480px) {
+  .hero-content h1 {
+    font-size: 24px;
+  }
+}
+
+
+/* ===== INTRO SECTION (Giữ cấu trúc cơ bản của bạn, điều chỉnh màu sắc và font) ===== */
 .intro-section {
   text-align: center;
   padding: 60px 20px;
+  background-color: #fff; /* Nền trắng */
 }
 
 .intro-section h2 {
-  font-size: 24px;
-  color: #0056d2;
+  font-size: 30px; /* Phóng to tiêu đề */
+  color: #0056d2; /* Màu xanh đậm */
   margin-bottom: 40px;
   font-weight: bold;
+  text-transform: uppercase; /* Chữ hoa */
+  letter-spacing: 1.5px; /* Tăng khoảng cách chữ */
 }
 
 .intro-cards {
@@ -56,81 +85,131 @@
   justify-content: center;
   gap: 30px;
   flex-wrap: wrap;
+  max-width: var(--maxw, 1100px); /* Đảm bảo nằm trong max-width */
+  margin: 0 auto; /* Căn giữa */
 }
 
 .intro-cards .card {
-  width: 400px;
+  /* Loại bỏ width cố định 400px để linh hoạt hơn */
+  flex: 1; /* Cho phép các thẻ co giãn */
+  min-width: 280px; /* Kích thước tối thiểu trước khi xuống dòng */
+  max-width: 350px; /* Kích thước tối đa của mỗi thẻ */
   background: white;
+  border: 1px solid #eee; /* Thêm viền nhẹ */
   border-radius: 10px;
   text-align: center;
-  padding: 15px;
-  transition: 0.3s;
+  padding: 20px; /* Tăng padding */
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08); /* Đổ bóng nhẹ nhàng hơn */
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.intro-cards .card:hover {
+  transform: translateY(-5px); /* Hiệu ứng hover nhẹ */
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15); /* Đổ bóng mạnh hơn khi hover */
 }
 
 .intro-cards .card img {
   width: 100%;
+  height: 200px; /* Chiều cao cố định cho ảnh để đồng bộ */
+  object-fit: cover; /* Đảm bảo ảnh không bị méo */
   border-radius: 8px;
   margin-bottom: 15px;
 }
 
 .intro-cards .card h3 {
-  font-size: 18px;
+  font-size: 20px; /* Phóng to tiêu đề thẻ */
   color: #000;
   margin-bottom: 10px;
+  text-transform: uppercase;
 }
 
 .intro-cards .card p {
-  font-size: 14px;
+  font-size: 15px; /* Tăng kích thước font cho đoạn văn */
   color: #555;
+  line-height: 1.6; /* Tăng line-height để dễ đọc */
 }
 
-/* ===== PROJECT SECTION ===== */
+/* ===== PROJECT SECTION (ÁP DỤNG BỐ CỤC ẢNH-TEXT MỚI) ===== */
 .project-section {
-  background: #f5f5f5;
+  background-color: #f8f8f8;
   padding: 60px 20px;
   text-align: center;
 }
 
 .project-section h2 {
-  font-size: 24px;
+  font-size: 30px;
   color: #0056d2;
   margin-bottom: 50px;
   font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
 }
 
 .project-cards {
   display: flex;
   flex-direction: column;
-  gap: 40px;
-  max-width: 1000px;
+  gap: 50px;
+  max-width: 1100px;
   margin: auto;
 }
 
-.project-card {
+.project-card { 
   display: flex;
-  gap: 20px;
   align-items: center;
   background: white;
-  border-radius: 10px;
-  padding: 20px;
+  border-radius: 12px;
+  padding: 30px;
   text-align: left;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
+/* 1. Đảm bảo BỐ CỤC MẶC ĐỊNH là TEXT (Trái) | ẢNH (Phải) do thứ tự HTML đã sửa */
+/* 2. Đảo ngược thứ tự cho mỗi dự án thứ 2: ẢNH (Trái) | TEXT (Phải) */
+.project-cards .project-card:nth-of-type(even) {
+  flex-direction: row-reverse; /* ĐẢO NGƯỢC THỨ TỰ: Ảnh trái, Text phải */
+}
+
+/* Cài đặt cho HÌNH ẢNH (Ô MÀU XANH) */
 .project-card img {
-  width: 300px;
-  border-radius: 10px;
+  /* Ảnh chiếm 40% chiều rộng của thẻ */
+  width: 40%; 
+  height: auto; /* Tự động thu nhỏ và giữ tỷ lệ */
+  object-fit: contain; /* QUAN TRỌNG: Đảm bảo ảnh tự thu nhỏ nếu lớn */
+  border-radius: 8px;
+  
+  /* Căn chỉnh margin để phù hợp với bố cục */
+  margin-right: 30px; /* Khoảng cách với text */
+  margin-left: 0;
+  flex-shrink: 0; 
+  /* border: 2px solid blue; */ /* KHUNG XANH ĐỂ DỄ HÌNH DUNG */
 }
 
-.project-card .text h3 {
-  font-size: 18px;
-  margin-bottom: 10px;
-  color: #000;
+/* Cài đặt cho NỘI DUNG VĂN BẢN (Ô MÀU VÀNG) */
+.project-card .text {
+  flex: 1; /* Phần text chiếm phần còn lại (~60%) */
+  padding: 0;
+  /* border: 2px solid red; */ /* KHUNG VÀNG ĐỂ DỄ HÌNH DUNG */
 }
 
-.project-card .text p {
-  font-size: 14px;
-  color: #555;
+/* Điều chỉnh margin cho thẻ chẵn (TEXT phải, ẢNH trái) */
+.project-cards .project-card:nth-of-type(even) img {
+  margin-right: 0; /* Bỏ margin bên phải */
+  margin-left: 30px; /* Thêm margin bên trái */
 }
 
-
-
+/* --- Responsive (Chuyển sang chồng dọc trên Tablet/Mobile) --- */
+@media (max-width: 992px) {
+  .project-card,
+  .project-cards .project-card:nth-of-type(even) {
+    flex-direction: column; /* Chuyển thành chồng dọc */
+    text-align: center;
+    padding: 25px;
+  }
+  
+  .project-card img {
+    width: 80%; /* Ảnh chiếm 80% chiều rộng */
+    max-width: 400px; 
+    margin: 0 0 20px 0; /* Căn giữa ảnh và thêm margin dưới */
+  }
+}

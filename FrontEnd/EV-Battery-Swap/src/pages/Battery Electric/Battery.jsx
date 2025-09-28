@@ -47,11 +47,11 @@ function Battery() {
       {/* DỰ ÁN PIN TIÊU BIỂU */}
       <section className="project-section">
         <h2>The most advanced energy platform for Electric Vehicle</h2>
-        <h3>DỰ ÁN PIN TIÊU BIỂU</h3>
+
 
         <div className="project-cards">
           <div className="project">
-            <img src="/img-bat.jpg" alt="Pin xe điện" />
+
             <div className="text">
               <h3>PIN CÔNG NGHỆ CAO DÀNH CHO XE ĐIỆN</h3>
               <p>
@@ -59,11 +59,12 @@ function Battery() {
                 khắt khe. Ứng dụng cho xe máy điện, xe tải điện, xe buýt điện,
                 với tuổi thọ cao và hiệu suất ổn định.
               </p>
+              <img src="/img-battery3.jpg" alt="Pin xe điện" /> 
             </div>
           </div>
 
           <div className="project">
-            <img src="/img-project-energy.jpg" alt="Pin năng lượng" />
+            <img src="/img-batte.jpg" alt="Pin năng lượng" />
             <div className="text">
               <h3>PIN CHO ỨNG DỤNG NĂNG LƯỢNG</h3>
               <p>
