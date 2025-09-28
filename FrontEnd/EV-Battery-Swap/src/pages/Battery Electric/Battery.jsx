@@ -86,10 +86,45 @@ function Battery() {
               <p>Connect to the entire Gogoro Network in real time. Ready for a swap? Find fresh batteries near you. Planning a trip? Map GoStation Sites on your route. Everything is here. Riding plans. Cash-free billing. Riding stats. Swapping tips. Network updates. 24/7 service. Gas never had an app.</p>
             </div>
           </div>
-
         </div>
       </section>
 
+      {/* TẠI SAO CHỌN GIẢI PHÁP CỦA CHÚNG TÔI */}
+      <section className="intro-section">
+        <h2>WHY CHOOSE OUR SOLUTION?</h2>
+        <div className="intro-cards-sumary">
+          <div className="card-sumary">
+            <img src="/img-batte.jpg" alt="Pin cho xe điện" />
+          </div>
+          {/*Setting chữ*/}
+          <div className="sumary-text-chung">
+            <div className="sumary-text-1">
+              <h3 class="text">CONVENIENCE</h3>
+              <p>
+                GoStation Sites use less space than a parking spot and are quick and easy to install in a wide range of sites. A single location can serve hundreds of swaps a day without waiting.
+              </p>
+            </div>
+          
+          <div className="sumary-text-1">
+            <div className="sumary-text-1">
+              <h3 class="text">Easy to Operate</h3>
+              <p>
+                Weather proof. Tamper proof. Low maintenance. 24hr monitoring, remote updates and automatic safety measures deliver 99% uptime.
+              </p>
+            </div>
+</div>
+          
+            <div className="sumary-text-1">
+            <h3 class="text">Built to Last</h3>
+            <p>
+              Rugged design, future-proof technology and continual updates. Engineered for reliability in the most demanding urban environments. Swap after swap, year after year.
+            </p>
+          </div>
+        
+        
+        </div>
+        </div>
+      </section>
     </div>
   );
 }

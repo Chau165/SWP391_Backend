@@ -220,3 +220,30 @@
   color: #444;
   line-height: 1.7;
 }
+
+.intro-cards-sumary img {
+  width: 162vh;
+  height: 90vh;
+  object-fit: cover;
+  margin-bottom: 65px;
+
+}
+
+.sumary-text-chung {
+  width: 100%;
+  padding-right: var(--ggr-gutter-x, 40px);
+  padding-left: var(--ggr-gutter-x, 30px);
+  margin-right: auto;
+  margin-left: auto;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+}
+
+.sumary-text-1 {
+  display: grid;
+  grid-row-gap: 48px;
+  grid-column-gap: 30px;
+  text-align: center;
+}
