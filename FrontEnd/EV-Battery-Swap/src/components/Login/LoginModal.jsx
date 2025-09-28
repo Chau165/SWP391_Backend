@@ -19,7 +19,7 @@ export default function LoginModal({ isOpen, onClose }) {
   //State để quản lý lỗi và trạng thái tải
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Hàm xử lý thay đổi input
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -53,15 +53,15 @@ export default function LoginModal({ isOpen, onClose }) {
       // ----------------------------------------------------
       // THAY ĐỔI ĐƯỜNG DẪN API VÀ CÁC HEADER CỦA BẠN TẠI ĐÂY
       // ----------------------------------------------------
-      const response = await fetch('https://74dd58621a21.ngrok-free.app/webAPI/api/login', {
-        method: 'POST',
-        headers: {
-          "Content-Type": "application/json"
-        },
-        // THAY THẾ DỮ LIỆU CỨNG BẰNG BIẾN formData
-        body: JSON.stringify(formData) 
+      const response = await fetch('https://03dafbc27102.ngrok-free.app/webAPI/api/login', {
+        method: 'POST',
+        headers: {
+          "Content-Type": "application/json"
+        },
+        // THAY THẾ DỮ LIỆU CỨNG BẰNG BIẾN formData
+        body: JSON.stringify(formData)
       });
-      
+
       const data = await response.json();
 
       if (response.ok) {
@@ -82,44 +82,44 @@ export default function LoginModal({ isOpen, onClose }) {
   };
 
 
- return (
+  return (
     <div className="modal-backdrop">
       <div className="login-modal" ref={modalRef}>
         <button className="close-btn" onClick={onClose} aria-label="Đóng">
           &times;
         </button>
-        
+
         <h2 className="modal-title">Đăng nhập</h2>
         <p className="modal-subtitle">Chào mừng trở lại. Vui lòng nhập thông tin của bạn.</p>
 
         <form className="login-form" onSubmit={handleSubmit}>
-          
+
           <div className="form-group">
             <label htmlFor="email">Email</label>
-            <input 
-              type="email" 
-              id="email" 
-              placeholder="Nhập email của bạn" 
-              required 
+            <input
+              type="email"
+              id="email"
+              placeholder="Nhập email của bạn"
+              required
               value={formData.email} // Gắn giá trị state
               onChange={handleChange} // Xử lý thay đổi
             />
           </div>
-          
+
           <div className="form-group">
             <label htmlFor="password">Mật khẩu</label>
-            <input 
-              type="password" 
-              id="password" 
-              placeholder="Nhập mật khẩu" 
-              required 
+            <input
+              type="password"
+              id="password"
+              placeholder="Nhập mật khẩu"
+              required
               value={formData.password} // Gắn giá trị state
               onChange={handleChange} // Xử lý thay đổi
             />
           </div>
-          
+
           {/* BỔ SUNG 4: Hiển thị lỗi */}
-          {error && <p className="error-message">{error}</p>} 
+          {error && <p className="error-message">{error}</p>}
 
           <div className="form-options">
             <a href="#" className="forgot-password">Quên mật khẩu?</a>
@@ -129,9 +129,9 @@ export default function LoginModal({ isOpen, onClose }) {
             {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
-        
+
         <p className="signup-link">
-            Chưa có tài khoản? <a href="#">Đăng ký ngay</a>
+          Chưa có tài khoản? <a href="#">Đăng ký ngay</a>
         </p>
       </div>
     </div>
