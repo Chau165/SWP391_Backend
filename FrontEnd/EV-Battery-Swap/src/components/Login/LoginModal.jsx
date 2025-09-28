@@ -63,7 +63,7 @@ export default function LoginModal({ isOpen, onClose }) {
       });
 
       const data = await response.json();
-
+      console.log(data);
       if (response.ok) {
         // Xử lý thành công: Lưu token, chuyển hướng người dùng
         alert('Đăng nhập thành công! Token: ' + data.token);
