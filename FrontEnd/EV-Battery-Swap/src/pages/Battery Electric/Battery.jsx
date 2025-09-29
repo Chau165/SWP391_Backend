@@ -1,16 +1,45 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import "./Battery.css";
 
 function Battery() {
+  const videoRef = useRef(null);
+  const hasPlayedRef = useRef(false);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    // đảm bảo video muted để browser cho autoplay
+    v.muted = true;
+    // playsInline cho mobile
+    v.playsInline = true;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // nếu lần đầu tiên nhìn thấy >=50% thì play 1 lần
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5 && !hasPlayedRef.current) {
+            v.play().catch(() => {});
+            hasPlayedRef.current = true;
+          }
+          // khi không hiển thị thì pause luôn
+          if (!entry.isIntersecting) {
+            v.pause();
+          }
+        });
+      },
+      { threshold: [0.5] }
+    );
+
+    obs.observe(v);
+    return () => obs.disconnect();
+  }, []);
+
   return (
     <div className="battery-page">
       {/* HERO SECTION */}
       <div className="hero">
-        <img
-          src="/img-battery.jpg"
-          alt="Battery Swap"
-          className="hero-image"
-        />
+        <img src="/img-battery.jpg" alt="Battery Swap" className="hero-image" />
         <div className="hero-content">
           <h1>EV Battery Solutions</h1>
         </div>
@@ -96,35 +125,53 @@ function Battery() {
           <div className="card-sumary">
             <img src="/img-batte.jpg" alt="Pin cho xe điện" />
           </div>
-          {/*Setting chữ*/}
+
           <div className="sumary-text-chung">
             <div className="sumary-text-1">
-              <h3 class="text">CONVENIENCE</h3>
+              <h3 className="text">CONVENIENCE</h3>
               <p>
                 GoStation Sites use less space than a parking spot and are quick and easy to install in a wide range of sites. A single location can serve hundreds of swaps a day without waiting.
               </p>
             </div>
-          
-          <div className="sumary-text-1">
+
             <div className="sumary-text-1">
-              <h3 class="text">Easy to Operate</h3>
+              <h3 className="text">Easy to Operate</h3>
               <p>
                 Weather proof. Tamper proof. Low maintenance. 24hr monitoring, remote updates and automatic safety measures deliver 99% uptime.
               </p>
             </div>
-</div>
-          
+
             <div className="sumary-text-1">
-            <h3 class="text">Built to Last</h3>
-            <p>
-              Rugged design, future-proof technology and continual updates. Engineered for reliability in the most demanding urban environments. Swap after swap, year after year.
-            </p>
+              <h3 className="text">Built to Last</h3>
+              <p>
+                Rugged design, future-proof technology and continual updates. Engineered for reliability in the most demanding urban environments. Swap after swap, year after year.
+              </p>
+            </div>
           </div>
-        
-        
-        </div>
         </div>
       </section>
+
+      
+      {/* VIDEO SECTION: play/pause on scroll */}
+      <section className="video-section video-hero">
+        <video
+          ref={videoRef}
+          src="/video-gn-think-ahead.mp4"
+          poster="/img-network-hero.jpg"
+          // muted và playsInline đã set trong useEffect
+          // không để controls để giống hero
+          className="video-cover"
+        />
+        <div className="video-overlay">
+          <div className="eyebrow">SMART &amp; CONNECTED</div>
+          <h2 className="video-title">Thinking ahead.</h2>
+          <p className="video-desc">
+            SmartGEN is our cloud‑connected nerve center. Its AI is constantly learning from riding patterns and swap behavior to anticipate when and where full batteries will be needed. By intelligently distributing energy we keep hundreds of thousands of riders moving swiftly on their way.
+          </p>
+        </div>
+      </section>
+
+      {/* ...existing code... */}
     </div>
   );
 }
