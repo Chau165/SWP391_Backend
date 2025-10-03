@@ -4,41 +4,39 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';
-import LoginModal from './components/Login/LoginModal';
-
-// Components Trang
 import Home from './pages/Home/Home';
+import Battery from './pages/Battery Electric/Battery';
+import BatteryPin from './pages/Battery Electric/BatteryPin'; // Thêm import
 import AboutUs from './pages/About Us/AboutUs';
-import Battery from './pages/Battery Electric/Battery'; // Đảm bảo đã import
+import LoginModal from './components/Login/LoginModal';
+import './App.css';
 
 function App() {
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false); 
-
-  const handleOpenModal = () => setIsLoginModalOpen(true);
-  const handleCloseModal = () => setIsLoginModalOpen(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   return (
     <Router>
-      <Header onLoginClick={handleOpenModal} />
-      
-      {/* THÊM THẺ MAIN ĐỂ BAO BỌC NỘI DUNG CHÍNH */}
-      <main> 
+      <div className="App">
+        <Header onLoginClick={() => setIsLoginOpen(true)} />
+        
+        <main>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/battery" element={<Battery />} />
+            <Route path="/battery-pin" element={<BatteryPin />} /> {/* Thêm route mới */}
             <Route path="/about" element={<AboutUs />} />
-            {/* Đảm bảo Route này đã được thêm vào */}
-            <Route path="/vehicles" element={<Battery />} /> 
-            {/* THÊM ROUTE CHO TRANG 404 NẾU CẦN: <Route path="*" element={<NotFound />} /> */}
           </Routes>
-      </main>
+        </main>
 
-      <Footer />
-      <LoginModal 
-        isOpen={isLoginModalOpen} 
-        onClose={handleCloseModal} 
-      />
+        <Footer />
+        
+        <LoginModal 
+          isOpen={isLoginOpen} 
+          onClose={() => setIsLoginOpen(false)} 
+        />
+      </div>
     </Router>
-  )
+  );
 }
 
-export default App
+export default App;
