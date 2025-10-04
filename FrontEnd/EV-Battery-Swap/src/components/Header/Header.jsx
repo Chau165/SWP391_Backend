@@ -64,8 +64,8 @@ export default function Header({ onLoginClick }) {
             {showBatteryDropdown && (
               <div className="dropdown-menu">
                 <Link 
-                  to="/vehicles" 
-                  className={`dropdown-item ${isActive('/vehicles') ? 'active' : ''}`}
+                  to="/battery" 
+                  className={`dropdown-item ${isActive('/battery') ? 'active' : ''}`}
                 >
                   Battery Swap
                 </Link>

@@ -1,33 +1,12 @@
-/* BaterryPin.css */
-
-/* Sử dụng lại style từ Battery.css */
-.battery-pin-page {
-  font-family: Arial, sans-serif;
-  color: #333;
-  background-color: #fff;
-}
-
-/* Hero Section */
-.hero {
-  position: relative;
-  width: 100%;
-  height: 75vh;
-  overflow: hidden;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.hero-image {
-  width: 100%;
+.hero1-image {
+  width: 120%; /* Tăng từ 100% lên 120% */
   height: 100%;
   object-fit: cover;
   display: block;
+  transform: scale(1.1); /* Thêm scale để phóng to ảnh */
+  transform-origin: center; /* Đảm bảo scale từ giữa */
 }
-
-.hero-content {
+.hero1-content {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -38,121 +17,13 @@
   max-width: 1100px;
   padding: 0 15px;
   box-sizing: border-box;
+  z-index: 2; /* Đảm bảo text nằm trên ảnh */
 }
 
-.hero-content h1 {
-  font-size: 48px;
+.hero1-content h1 {
+  font-size: 28px;
   font-weight: bold;
   margin: 0;
   color: white;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-/* Intro Section */
-.intro-section {
-  text-align: center;
-  padding: 60px 20px;
-  background-color: #f4f4f4;
-}
-
-.intro-section h2 {
-  font-size: 30px;
-  color: #0056d2;
-  margin-bottom: 40px;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-}
-
-.intro-cards {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  flex-wrap: wrap;
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-.intro-cards .card {
-  flex: 1;
-  min-width: 280px;
-  max-width: 350px;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  text-align: center;
-  padding: 25px 20px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.intro-cards .card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.intro-cards .card img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin-bottom: 15px;
-}
-
-.intro-cards .card h3 {
-  font-size: 20px;
-  color: #000;
-  margin-bottom: 10px;
-  text-transform: uppercase;
-}
-
-.intro-cards .card p {
-  font-size: 15px;
-  color: #555;
-  line-height: 1.6;
-}
-
-/* Video Section */
-.video-section {
-  background: transparent;
-  padding: 36px 12px;
-}
-
-.video-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  text-align: center;
-  padding: 0 16px;
-}
-
-.responsive-video {
-  width: 100%;
-  max-width: 1100px;
-  height: auto;
-  max-height: 640px;
-  display: block;
-  margin: 0 auto;
-  border-radius: 10px;
-  box-shadow: 0 18px 48px rgba(2,6,23,0.08);
-  background: #000;
-  outline: none;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .hero-content h1 {
-    font-size: 32px;
-  }
-  
-  .responsive-video {
-    max-width: 100%;
-    max-height: 260px;
-    border-radius: 8px;
-  }
-}
-
-@media (max-width: 480px) {
-  .hero-content h1 {
-    font-size: 24px;
-  }
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7); /* Tăng độ đậm của shadow */
 }

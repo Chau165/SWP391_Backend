@@ -28,7 +28,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<AboutUs />} />
             {/* Đảm bảo Route này đã được thêm vào */}
-            <Route path="/vehicles" element={<Battery />} /> 
+            <Route path="/battery" element={<Battery />} /> 
             <Route path="/battery-pin" element={<BatteryPin />} /> {/* Thêm route mới */}
             {/* THÊM ROUTE CHO TRANG 404 NẾU CẦN: <Route path="*" element={<NotFound />} /> */}
           </Routes>
