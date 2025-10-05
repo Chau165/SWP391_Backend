@@ -1,29 +1,248 @@
-.hero1-image {
-  width: 120%; /* Tăng từ 100% lên 120% */
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transform: scale(1.1); /* Thêm scale để phóng to ảnh */
-  transform-origin: center; /* Đảm bảo scale từ giữa */
-}
-.hero1-content {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  color: white;
-  width: 100%;
-  max-width: 1100px;
-  padding: 0 15px;
+/* Reset và Base Styles */
+* {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
-  z-index: 2; /* Đảm bảo text nằm trên ảnh */
 }
 
-.hero1-content h1 {
-  font-size: 28px;
-  font-weight: bold;
+.battery-pin-page {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  min-height: 100vh;
+  width: 100vw;
+  background: linear-gradient(135deg, #e8f4f8 0%, #d6f0f7 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0 0;
   margin: 0;
-  color: white;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7); /* Tăng độ đậm của shadow */
+  overflow-x: hidden;
+}
+
+/* Main Container */
+.gogoro-container {
+  width: 100%;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+  padding: 0 60px;
+  box-sizing: border-box;
+}
+
+/* Left Side - Text Content */
+.text-content {
+  padding-right: 40px;
+}
+
+.text-content h1 {
+  font-size: clamp(48px, 5vw, 80px);
+  font-weight: 800;
+  line-height: 1.1;
+  color: #2c3e50;
+  margin-bottom: 24px;
+  letter-spacing: -0.02em;
+}
+
+.text-content p {
+  font-size: 18px;
+  line-height: 1.6;
+  color: #5a6c7d;
+  max-width: 500px;
+}
+
+/* Right Side - Station Container */
+.station-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Battery Grid */
+.battery-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 12px;
+  padding: 40px;
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  border-radius: 24px;
+  width: 450px;
+  height: 280px;
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.4),
+    inset 0 2px 0 rgba(255, 255, 255, 0.1);
+  transform: perspective(800px) rotateY(-5deg) rotateX(2deg);
+  transition: all 0.4s ease;
+}
+
+.battery-grid:hover {
+  transform: perspective(800px) rotateY(0deg) rotateX(0deg);
+  box-shadow: 
+    0 30px 60px rgba(0, 0, 0, 0.5),
+    inset 0 2px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Individual Battery Slot */
+.battery-slot {
+  background: linear-gradient(145deg, #1a252f 0%, #2c3e50 100%);
+  border-radius: 14px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    inset 0 3px 6px rgba(0, 0, 0, 0.4),
+    inset 0 -1px 2px rgba(255, 255, 255, 0.05);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.battery-slot::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(46, 204, 113, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.battery-slot:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 
+    inset 0 3px 6px rgba(0, 0, 0, 0.4),
+    0 8px 25px rgba(46, 204, 113, 0.4),
+    0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.battery-slot:hover::before {
+  left: 100%;
+}
+
+.battery-inner {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 50%, #58d68d 100%);
+  border-radius: 10px;
+  position: relative;
+  box-shadow: 
+    0 3px 12px rgba(46, 204, 113, 0.5),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+}
+
+.battery-inner::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  height: 50%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+  border-radius: 8px 8px 0 0;
+}
+
+.battery-inner::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 20%;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%);
+  border-radius: 0 0 6px 6px;
+}
+
+/* Animation Effects */
+.battery-slot:nth-child(odd) {
+  animation: breathe 4s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 0.15s);
+}
+
+.battery-slot:nth-child(even) {
+  animation: glow 5s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 0.2s);
+}
+
+@keyframes breathe {
+  0%, 100% {
+    box-shadow: 
+      inset 0 3px 6px rgba(0, 0, 0, 0.4),
+      inset 0 -1px 2px rgba(255, 255, 255, 0.05);
+  }
+  50% {
+    box-shadow: 
+      inset 0 3px 6px rgba(0, 0, 0, 0.4),
+      inset 0 -1px 2px rgba(255, 255, 255, 0.1),
+      0 0 20px rgba(46, 204, 113, 0.2);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.15);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .gogoro-container {
+    grid-template-columns: 1fr;
+    gap: 60px;
+    text-align: center;
+  }
+  
+  .text-content {
+    padding-right: 0;
+  }
+  
+  .text-content h1 {
+    font-size: clamp(36px, 6vw, 64px);
+  }
+}
+
+@media (max-width: 768px) {
+  .battery-pin-page {
+    padding: 100px 0 0;
+  }
+  
+  .gogoro-container {
+    gap: 40px;
+    padding: 0 20px;
+    height: auto;
+    min-height: 100vh;
+  }
+  
+  .battery-grid {
+    width: 360px;
+    height: 220px;
+    padding: 28px;
+    transform: perspective(600px) rotateY(-3deg) rotateX(1deg);
+  }
+}
+
+@media (max-width: 480px) {
+  .text-content h1 {
+    font-size: 32px;
+  }
+  
+  .text-content p {
+    font-size: 16px;
+  }
+  
+  .battery-grid {
+    width: 300px;
+    height: 200px;
+    grid-template-columns: repeat(5, 1fr);
+    padding: 24px;
+    gap: 10px;
+    transform: perspective(500px) rotateY(-2deg) rotateX(1deg);
+  }
 }
