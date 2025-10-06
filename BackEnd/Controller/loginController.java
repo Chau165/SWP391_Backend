@@ -4,12 +4,12 @@ import DAO.UsersDAO;
 import DTO.Users;
 import com.google.gson.Gson;
 
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -48,6 +48,20 @@ public class loginController extends HttpServlet {
             if (loginReq == null || loginReq.email == null || loginReq.password == null) {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 out.print("{\"status\":\"fail\",\"message\":\"Missing email or password\"}");
+                return;
+            }
+
+            // Validate email format
+            if (!mylib.ValidationUtil.isValidEmail(loginReq.email)) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                out.print("{\"status\":\"fail\",\"message\":\"Email format is invalid\"}");
+                return;
+            }
+
+            // Validate password rules (basic)
+            if (!mylib.ValidationUtil.isValidPassword(loginReq.password)) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                out.print("{\"status\":\"fail\",\"message\":\"Password must be at least 6 characters and include letters and digits\"}");
                 return;
             }
 
