@@ -2,22 +2,24 @@ package controller;
 
 import DAO.UsersDAO;
 import DTO.Users;
+
+
+import DAO.UsersDAO;
+import DTO.Users;
 import com.google.gson.Gson;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import mylib.ValidationUtil;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.regex.Pattern;
 
 @WebServlet("/api/register")
 public class registerController extends HttpServlet {
-    private static final Pattern PHONE_PATTERN = Pattern.compile("^[0-9]{10}$");
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
@@ -32,28 +34,48 @@ public class registerController extends HttpServlet {
             Gson gson = new Gson();
             Users input = gson.fromJson(reader, Users.class);
 
-            // validate phone
-            if (!PHONE_PATTERN.matcher(input.getPhone()).matches()) {
+            if (input == null) {
                 resp.setStatus(400);
-                out.print("{\"error\":\"Số điện thoại phải đúng 10 số\"}");
+                out.print("{\"error\":\"Invalid input\"}");
+                return;
+            }
+
+            // Validate full name
+            if (!ValidationUtil.isValidFullName(input.getFullName())) {
+                resp.setStatus(400);
+                out.print("{\"error\":\"Full name is invalid\"}");
+                return;
+            }
+
+            // validate phone (Vietnam)
+            if (!ValidationUtil.isValidVNPhone(input.getPhone())) {
+                resp.setStatus(400);
+                out.print("{\"error\":\"Phone number is not a valid VN mobile number\"}");
                 return;
             }
 
             // validate email
-            if (!EMAIL_PATTERN.matcher(input.getEmail()).matches()) {
+            if (!ValidationUtil.isValidEmail(input.getEmail())) {
                 resp.setStatus(400);
-                out.print("{\"error\":\"Email không hợp lệ\"}");
+                out.print("{\"error\":\"Email is invalid\"}");
+                return;
+            }
+
+            // validate password
+            if (!ValidationUtil.isValidPassword(input.getPassword())) {
+                resp.setStatus(400);
+                out.print("{\"error\":\"Password must be at least 6 characters, include letters and digits\"}");
                 return;
             }
 
             UsersDAO dao = new UsersDAO();
             if (dao.existsByEmail(input.getEmail())) {
                 resp.setStatus(409);
-                out.print("{\"error\":\"Email đã tồn tại\"}");
+                out.print("{\"error\":\"Email already exists\"}");
                 return;
             }
 
-            // gán role & station mặc định
+            // assign default role & station
             input.setRole("Driver");
             input.setStationId(null);
 
