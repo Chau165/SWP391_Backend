@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <title>Battery Swap System - Demo</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+            }
+            h1 {
+                color: #2c3e50;
+            }
+            h2 {
+                color: #34495e;
+            }
+            .card {
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 20px;
+                max-width: 500px;
+            }
+            input, select, button {
+                margin: 5px 0;
+                padding: 8px;
+                width: 100%;
+                border-radius: 4px;
+                border: 1px solid #aaa;
+            }
+            button {
+                background: #3498db;
+                color: white;
+                border: none;
+                cursor: pointer;
+            }
+            button:hover {
+                background: #2980b9;
+            }
+            pre {
+                background: #f8f9fa;
+                padding: 10px;
+                border-radius: 5px;
+                max-width: 600px;
+                white-space: pre-wrap;
+            }
+            .package-item {
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                padding: 10px;
+                margin: 5px 0;
+            }
+        </style>
+    </head>
+    <body>
+
+        <h1>⚡ Battery Swap Demo</h1>
+
+        <!-- Đăng nhập -->
+        <div class="card">
+            <h2>Đăng nhập</h2>
+            <input type="text" id="loginEmail" placeholder="Email" />
+            <input type="password" id="loginPassword" placeholder="Mật khẩu" />
+            <button onclick="login()">Đăng nhập</button>
+            <pre id="loginResult"></pre>
+        </div>
+
+        <!-- Đăng ký -->
+        <div class="card">
+            <h2>Đăng ký</h2>
+            <input type="text" id="regName" placeholder="Họ tên" />
+            <input type="text" id="regPhone" placeholder="Số điện thoại" />
+            <input type="text" id="regEmail" placeholder="Email" />
+            <input type="password" id="regPassword" placeholder="Mật khẩu" />
+            <button onclick="register()">Đăng ký</button>
+            <pre id="regResult"></pre>
+        </div>
+
+        <!-- Danh sách gói pin -->
+        <div class="card">
+            <h2>Xem gói pin</h2>
+            <button onclick="getPackages()">Lấy danh sách gói pin</button>
+            <div id="packagesList"></div>
+            <pre id="packagesResult"></pre>
+        </div>
+
+        <!-- Liên kết xe -->
+        <div class="card">
+            <h2>Liên kết xe</h2>
+
+            <label for="model">Mẫu xe VinFast:</label>
+            <select id="model">
+                <option value="Feliz S">Feliz S</option>
+                <option value="Evo200">Evo200</option>
+                <option value="Klara S">Klara S</option>
+                <option value="Theon S">Theon S</option>
+                <option value="Vento S">Vento S</option>
+            </select>
+
+            <label for="batteryType">Loại pin:</label>
+            <select id="batteryType">
+                <option value="Lithium-ion 52V 22Ah">Lithium-ion 52V 22Ah</option>
+                <option value="LFP 72V 117Ah">LFP 72V 117Ah</option>
+            </select>
+
+            <label for="carDoc">Ảnh cà vẹt xe:</label>
+            <input type="file" id="carDoc" accept="image/*" onchange="previewCarDoc(event)" />
+
+            <!-- Hiển thị ảnh preview -->
+            <div id="previewBox" style="margin-top:10px; display:none;">
+                <p><b>Ảnh đã chọn:</b></p>
+                <img id="previewImg" src="" alt="Preview cà vẹt" style="max-width:100%; border:1px solid #ccc; border-radius:5px;" />
+            </div>
+
+            <button onclick="linkVehicle()">Liên kết xe</button>
+            <pre id="linkResult"></pre>
+        </div>
+
+        <script>
+            // 👉 BASE_URL sẽ tự động lấy context path (khỏi hardcode)
+            const BASE_URL = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "");
+            let loggedUserId = null; // lưu userId sau login
+
+            // ===== Login =====
+            async function login() {
+            const email = document.getElementById("loginEmail").value.trim();
+            const password = document.getElementById("loginPassword").value.trim();
+            try {
+            const res = await fetch(`${BASE_URL}/api/login`, {
+            method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ email, password }),
+                    credentials: "include"
+            });
+            const text = await res.text();
+            document.getElementById("loginResult").textContent = text;
+            try {
+            const data = JSON.parse(text);
+            loggedUserId = data?.user?.id || null;
+            } catch {
+            loggedUserId = null;
+            }
+            } catch (err) {
+            document.getElementById("loginResult").textContent = "❌ Lỗi: " + err;
+            }
+            }
+
+            // ===== Register =====
+            async function register() {
+            const fullName = document.getElementById("regName").value.trim();
+            const phone = document.getElementById("regPhone").value.trim();
+            const email = document.getElementById("regEmail").value.trim();
+            const password = document.getElementById("regPassword").value.trim();
+            try {
+            const res = await fetch(`${BASE_URL}/api/register`, {
+            method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ fullName, phone, email, password })
+            });
+            document.getElementById("regResult").textContent = await res.text();
+            } catch (err) {
+            document.getElementById("regResult").textContent = "❌ Lỗi: " + err;
+            }
+            }
+
+            // ===== Get Packages =====
+            async function getPackages() {
+            try {
+            const res = await fetch(`${BASE_URL}/api/getpackages`);
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            const data = await res.json();
+            const listDiv = document.getElementById("packagesList");
+            listDiv.innerHTML = "";
+            data.forEach(pkg => {
+            const div = document.createElement("div");
+            div.className = "package-item";
+            div.innerHTML = `
+                  <b>Gói ${pkg.packageId}:</b> ${pkg.name} - Giá: ${pkg.price} VND
+                  <button onclick="buyPackage(${pkg.packageId}, ${pkg.price})">Mua ngay</button>
+                `;
+            listDiv.appendChild(div);
+            });
+            document.getElementById("packagesResult").textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+            document.getElementById("packagesResult").textContent = "❌ Lỗi: " + err;
+            }
+            }
+
+            // ===== Buy Package =====
+            function buyPackage(packageId, amount) {
+            if (!loggedUserId) {
+            alert("⚠️ Vui lòng đăng nhập trước khi mua gói pin!");
+            return;
+            }
+            const params = new URLSearchParams({
+            userId: loggedUserId,
+                    packageId: packageId,
+                    amount: amount,
+                    orderType: "buyPackage"
+            });
+            window.location.href = `${BASE_URL}/payment?${params.toString()}`;
+            }
+
+            // ===== Preview ảnh cà vẹt =====
+            function previewCarDoc(event) {
+            const file = event.target.files[0];
+            if (!file) {
+            document.getElementById("previewBox").style.display = "none";
+            return;
+            }
+            const reader = new FileReader();
+            reader.onload = e => {
+            document.getElementById("previewImg").src = e.target.result;
+            document.getElementById("previewBox").style.display = "block";
+            };
+            reader.readAsDataURL(file);
+            }
+
+            // ===== Link Vehicle =====
+            async function linkVehicle() {
+            const model = document.getElementById("model").value;
+            const batteryType = document.getElementById("batteryType").value;
+            const fileInput = document.getElementById("carDoc");
+            if (!loggedUserId) {
+            alert("⚠️ Vui lòng đăng nhập trước khi liên kết xe!");
+            return;
+            }
+            if (fileInput.files.length === 0) {
+            alert("⚠️ Vui lòng chọn ảnh cà vẹt!");
+            return;
+            }
+
+            const formData = new FormData();
+            formData.append("model", model);
+            formData.append("batteryType", batteryType);
+            formData.append("carDoc", fileInput.files[0]);
+            formData.append("userId", loggedUserId);
+            try {
+            const res = await fetch(`${BASE_URL}/api/linkVehicleController`, {
+            method: "POST",
+                    body: formData,
+                    credentials: "include"
+            });
+            const text = await res.text();
+            document.getElementById("linkResult").textContent = text || "⚠️ Server không trả dữ liệu nào";
+            try {
+            const data = JSON.parse(text);
+            alert("✅ Liên kết xe thành công!");
+            console.log("Kết quả JSON:", data);
+            } catch {
+            console.warn("⚠️ Phản hồi không phải JSON:", text);
+            }
+            } catch (err) {
+            document.getElementById("linkResult").textContent = "❌ Lỗi fetch: " + err;
+            }
+            }
+        </script>
+
+    </body>
+</html>
