@@ -12,7 +12,7 @@ import java.sql.SQLException;
 
 public class DBUtils {
 //    Do not change this code
-    private static final String DB_NAME = "BatterySwapDB";
+    private static final String DB_NAME = "BatterySwapDBVer2";
     private static final String DB_USER_NAME = "SA";
     private static final String DB_PASSWORD = "12345";
 

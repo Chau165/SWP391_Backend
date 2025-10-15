@@ -116,10 +116,29 @@
             <pre id="linkResult"></pre>
         </div>
 
+        <!-- Comment card -->
+        <div class="card" id="commentCard">
+            <h2>Gửi nhận xét (Chỉ dành cho Driver)</h2>
+            <pre id="commentStatus"></pre>
+            <label for="commentStation">Chọn trạm:</label>
+            <select id="commentStation"></select>
+            <label for="commentContent">Nội dung:</label>
+            <textarea id="commentContent" rows="4" style="width:100%; padding:8px; border-radius:4px; border:1px solid #aaa;"></textarea>
+            <button onclick="submitComment()">Gửi nhận xét</button>
+            <pre id="commentResult"></pre>
+
+            <div id="adminCommentControls" style="display:none; margin-top:10px;">
+                <h3>Admin: Xem tất cả nhận xét</h3>
+                <button onclick="fetchCommentsForAdmin()">Lấy nhận xét</button>
+                <pre id="commentsList"></pre>
+            </div>
+        </div>
+
         <script>
             // 👉 BASE_URL sẽ tự động lấy context path (khỏi hardcode)
             const BASE_URL = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "");
             let loggedUserId = null; // lưu userId sau login
+            let loggedUserRole = null; // role của user (driver/staff/admin)
 
             // ===== Login =====
             async function login() {
@@ -137,6 +156,14 @@
             try {
             const data = JSON.parse(text);
             loggedUserId = data?.user?.id || null;
+            loggedUserRole = data?.user?.role || null;
+            // show admin controls if role is admin
+            if (loggedUserRole && loggedUserRole.toLowerCase() === 'admin') {
+                const adminCtl = document.getElementById('adminCommentControls');
+                if (adminCtl) adminCtl.style.display = 'block';
+            }
+            // after login, re-check user's swap transactions and load stations
+            loadStationsForSelect();
             } catch {
             loggedUserId = null;
             }
@@ -144,6 +171,173 @@
             document.getElementById("loginResult").textContent = "❌ Lỗi: " + err;
             }
             }
+
+            // Load stations into the comment station select (based on session user's swap transactions)
+            async function loadStationsForSelect() {
+            const sel = document.getElementById('commentStation');
+            const statusBox = document.getElementById('commentStatus');
+            const textarea = document.getElementById('commentContent');
+            const submitBtn = document.querySelector("button[onclick='submitComment()']");
+            if (!sel) return;
+            // default: disable comment form until we check
+            sel.innerHTML = '<option value="">-- Chọn trạm --</option>';
+            sel.disabled = true;
+            if (textarea) textarea.disabled = true;
+            if (submitBtn) submitBtn.disabled = true;
+            statusBox.textContent = '';
+            try {
+            // call server to check swaps for the session user
+            const res = await fetch(`${BASE_URL}/api/checkUserSwaps`, { credentials: 'include' });
+            if (res.status === 401) {
+                statusBox.textContent = 'Vui lòng đăng nhập để gửi nhận xét.';
+                // hide comment card
+                document.getElementById('commentCard').style.display = 'none';
+                return;
+            }
+            if (res.status === 403) {
+                statusBox.textContent = 'Chỉ tài xế (Driver) được gửi nhận xét. Bạn không có quyền.';
+                document.getElementById('commentCard').style.display = 'none';
+                return;
+            }
+            if (res.status === 204) {
+                statusBox.textContent = 'Bạn chưa có giao dịch hoàn thành (Completed). Không thể gửi nhận xét.';
+                // keep comment card visible but disabled
+                document.getElementById('commentCard').style.display = 'block';
+                return;
+            }
+            if (!res.ok) {
+                // fallback: try to load all stations but keep comment disabled
+                statusBox.textContent = 'Lỗi kiểm tra giao dịch: HTTP ' + res.status;
+                return;
+            }
+            const data = await res.json();
+            if (!Array.isArray(data) || data.length === 0) {
+                statusBox.textContent = 'Bạn chưa có giao dịch hoàn thành (Completed). Không thể gửi nhận xét.';
+                return;
+            }
+
+            // populate station select - display Station Name but value is Swap ID
+            sel.innerHTML = '';
+            data.forEach(item => {
+                // swapId is the ID from SwapTransaction table
+                const swapId = item.swapId;
+                const stationName = item.name || item.Name || 'Station';
+                const stationAddress = item.address || '';
+                
+                const opt = document.createElement('option');
+                opt.value = swapId;  // IMPORTANT: value is swapId, not stationId
+                opt.text = stationName + (stationAddress ? ' (' + stationAddress + ')' : '');
+                sel.appendChild(opt);
+            });
+
+            // show comment card and enable form
+            document.getElementById('commentCard').style.display = 'block';
+            sel.disabled = false;
+            if (textarea) textarea.disabled = false;
+            if (submitBtn) submitBtn.disabled = false;
+            statusBox.textContent = 'Bạn có lịch sử giao dịch hoàn thành. Vui lòng chọn trạm để gửi nhận xét.';
+
+            // if only 1 swap, preselect it
+            if (data.length === 1) {
+                sel.selectedIndex = 0;
+            }
+
+            } catch (err) {
+            console.warn('Không thể load station:', err);
+            statusBox.textContent = 'Lỗi khi kiểm tra giao dịch.';
+            }
+            }
+
+            async function submitComment() {
+            if (!loggedUserId) { alert('Vui lòng đăng nhập trước khi gửi nhận xét'); return; }
+            const swapId = document.getElementById('commentStation').value;  // This is now swapId
+            const content = document.getElementById('commentContent').value.trim();
+            if (!swapId) { alert('Vui lòng chọn trạm'); return; }
+            if (!content) { alert('Vui lòng nhập nội dung nhận xét'); return; }
+            try {
+            const res = await fetch(`${BASE_URL}/api/comment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ swapId: parseInt(swapId, 10), content })  // Send swapId instead of stationId
+            });
+            const txt = await res.text();
+            document.getElementById('commentResult').textContent = txt;
+            if (res.ok) {
+                // Clear form on success
+                document.getElementById('commentContent').value = '';
+            }
+            } catch (err) {
+            document.getElementById('commentResult').textContent = '❌ Lỗi: ' + err;
+            }
+            }
+
+            // Admin: fetch all comments
+            async function fetchCommentsForAdmin() {
+            try {
+            const res = await fetch(`${BASE_URL}/api/comment`, { credentials: 'include' });
+            if (!res.ok) {
+                document.getElementById('commentsList').textContent = 'Không thể lấy comments: HTTP ' + res.status;
+                return;
+            }
+
+            // Check user's swap transactions (called when user enters ID and clicks check)
+            async function checkMyTransactions() {
+            const idInput = document.getElementById('checkUserId').value;
+            const resultBox = document.getElementById('checkTxResult');
+            resultBox.textContent = '';
+            try {
+            // call server which validates session and returns the user's swaps
+            const res = await fetch(`${BASE_URL}/api/checkUserSwaps`, { credentials: 'include' });
+            if (res.status === 401) {
+                resultBox.textContent = 'Vui lòng đăng nhập trước khi kiểm tra giao dịch.';
+                return;
+            }
+            if (res.status === 204 || res.status === 204) {
+                resultBox.textContent = 'Bạn chưa thực hiện giao dịch nào. Không thể gửi nhận xét.';
+                return;
+            }
+            if (!res.ok) {
+                resultBox.textContent = 'Lỗi khi kiểm tra giao dịch: HTTP ' + res.status;
+                return;
+            }
+            const data = await res.json();
+            if (!Array.isArray(data) || data.length === 0) {
+                resultBox.textContent = 'Bạn chưa thực hiện giao dịch nào. Không thể gửi nhận xét.';
+                return;
+            }
+
+            // populate station select with unique station entries from returned data
+            const sel = document.getElementById('commentStation');
+            sel.innerHTML = '<option value="">-- Chọn trạm --</option>';
+            const seen = new Set();
+            data.forEach(item => {
+                const stationId = item.stationId || item.stationId || item.Station_ID || item.stationId || item.stationId;
+                const name = item.name || item.Name || ('Station ' + stationId);
+                if (!seen.has(stationId)) {
+                    seen.add(stationId);
+                    const opt = document.createElement('option');
+                    opt.value = stationId;
+                    opt.text = name;
+                    sel.appendChild(opt);
+                }
+            });
+            resultBox.textContent = 'Tìm thấy ' + seen.size + ' trạm liên quan đến giao dịch của bạn.';
+            } catch (err) {
+            document.getElementById('checkTxResult').textContent = '❌ Lỗi: ' + err;
+            }
+            }
+            const data = await res.json();
+            document.getElementById('commentsList').textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+            document.getElementById('commentsList').textContent = '❌ Lỗi: ' + err;
+            }
+            }
+
+            // Auto load stations when page loads
+            window.addEventListener('load', () => {
+            loadStationsForSelect();
+            });
 
             // ===== Register =====
             async function register() {

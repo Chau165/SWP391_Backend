@@ -29,6 +29,7 @@ public class UsersDAO {
                             rs.getString("Role"),
                             rs.getObject("Station_ID") != null ? rs.getInt("Station_ID") : null
                     );
+                    System.out.println("[DEBUG UsersDAO] Login successful: ID=" + user.getId() + ", Role=" + user.getRole() + ", FullName=" + user.getFullName());
                 }
             }
         } catch (Exception e) {
