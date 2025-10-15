@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Battery Swap System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --bg:#f4f4f4; --card:#fff; --muted:#6b7280; --ink:#111827; --primary:#2563eb; --primary-ink:#fff; --danger:#dc2626; --success:#16a34a; }
+    *{box-sizing:border-box}
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: var(--bg); color: var(--ink); }
+    h1 { color: #2c3e50; text-align: center; margin: 10px 0 20px; }
+    h2 { color: #34495e; margin: 0 0 10px; }
+    .grid { display:grid; gap:16px; grid-template-columns: repeat(12, 1fr); }
+    .col-12{grid-column: span 12}
+    .col-6{grid-column: span 12}
+    @media(min-width:980px){.col-6{grid-column: span 6}}
+    .card { background: var(--card); border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    input, button, select { margin: 6px 0; padding: 10px 12px; width: 100%; border-radius: 8px; border: 1px solid #d1d5db; background:#fff; }
+    button { background: var(--primary); color: var(--primary-ink); border: none; cursor: pointer; font-weight:600 }
+    button:hover { filter: brightness(0.95); }
+    button.ghost{background:transparent;color:var(--ink);border:1px solid #d1d5db}
+    button.small{padding:6px 10px;font-size:13px;border-radius:999px;width:auto}
+    pre { background: #f8f9fa; padding: 10px; border-radius: 8px; white-space: pre-wrap; overflow-x: auto; }
+    .package-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .package-card { border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.06); }
+    .package-card h3 { color: #2c3e50; margin-top: 0; }
+    .price { color: #e74c3c; font-weight: bold; }
+    img.preview { width: 100%; max-height: 220px; object-fit: contain; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; }
+    .table { width:100%; border-collapse: collapse; }
+    .table th, .table td { border:1px solid #e5e7eb; padding:8px; text-align:left; }
+    .table th { background:#f1f5f9; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:12px; background:#eef2ff; }
+    .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+    .hint { color: var(--muted); font-size: 12px; }
+    .role-tabs{display:flex;gap:8px;justify-content:center;margin:12px 0}
+    .role-tabs .pill{padding:6px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;font-size:12px}
+    .hide{display:none !important}
+  </style>
+</head>
+<body>
+
+<h1>⚡ Battery Swap System</h1>
+<div class="role-tabs">
+  <span class="pill" id="pillRole">Vai trò: <strong id="pillRoleText">Guest</strong></span>
+  <button class="pill" id="btnSwitchToDriver" title="Chỉ để test UI nhanh">Driver view</button>
+  <button class="pill" id="btnSwitchToManager" title="Chỉ để test UI nhanh">Manager view</button>
+  <button class="pill" id="btnSwitchToAdmin" title="Chỉ để test UI nhanh">Admin view</button>
+</div>
+
+<!-- 🔑 Auth -->
+<div class="grid">
+  <div class="col-6 card">
+    <h2>🔑 Đăng nhập</h2>
+    <input type="text" id="loginEmail" placeholder="Email" />
+    <input type="password" id="loginPassword" placeholder="Mật khẩu" />
+    <div class="row">
+      <button id="btnLogin">Đăng nhập</button>
+      <button class="ghost" id="btnLogout">Đăng xuất</button>
+    </div>
+    <pre id="loginResult"></pre>
+  </div>
+
+  <!-- ℹ️ User info -->
+  <div class="col-6 card">
+    <h2>👤 Phiên đăng nhập</h2>
+    <pre id="whoami">Chưa đăng nhập.</pre>
+  </div>
+</div>
+
+<!-- ===================== DRIVER / GUEST AREA ===================== -->
+<div id="areaDriverGuest">
+  <!-- ⚡ Packages -->
+  <div class="card">
+    <h2>⚡ Các gói pin</h2>
+    <div id="packageContainer" class="package-list">Đang tải danh sách...</div>
+  </div>
+
+  <!-- 📅 Booking -->
+  <div class="card">
+    <h2>📅 Đặt trước pin</h2>
+    <label>Chọn loại pin:</label>
+    <select id="batteryType">
+      <option value="Lithium-ion">Lithium-ion</option>
+      <option value="LFP">LFP</option>
+    </select>
+
+    <label>Chọn trạm sạc:</label>
+    <select id="bookingStation"></select>
+
+    <label>Chọn thời gian lấy pin:</label>
+    <input type="datetime-local" id="bookingTime" />
+
+    <button id="btnBooking">Đặt trước</button>
+    <pre id="bookingResult"></pre>
+  </div>
+
+  <!-- 📜 Booking list -->
+  <div class="card">
+    <h2>📜 Danh sách đặt chỗ</h2>
+    <div class="row" style="margin-bottom:8px">
+      <button id="btnReloadBookings">Tải lại</button>
+      <span id="bookingHint" class="code">※ Driver chỉ thấy đơn của mình; Staff/Admin thấy tất cả</span>
+    </div>
+    <div id="bookingsContainer"><em>Chưa tải dữ liệu...</em></div>
+  </div>
+
+  <!-- 🔄 Check-in / Swap -->
+  <div class="card">
+    <h2>🔄 Check-in / Đổi pin</h2>
+    <label>Nhập mã Booking ID:</label>
+    <input type="number" id="checkinBookingId" placeholder="VD: 1234" />
+    <button id="btnCheckin">Check-in & Swap pin</button>
+    <pre id="checkinResult"></pre>
+  </div>
+</div>
+
+<!-- ===================== MANAGER AREA ===================== -->
+<div id="areaManager" class="hide">
+  <div class="card">
+    <h2>🗂️ Yêu cầu điều phối pin (Manager)</h2>
+    <div class="grid">
+      <div class="col-6">
+        <label>Tên trạm (stationName)</label>
+        <input id="mgrStationName" placeholder="Ví dụ: Station Thủ Đức" />
+      </div>
+      <div class="col-6">
+        <label>Loại pin (batteryName)</label>
+        <input id="mgrBatteryName" placeholder="Ví dụ: LFP" />
+      </div>
+      <div class="col-6">
+        <label>Số lượng Good</label>
+        <input id="mgrQtyGood" type="number" min="0" value="0" />
+      </div>
+      <div class="col-6">
+        <label>Số lượng Average</label>
+        <input id="mgrQtyAvg" type="number" min="0" value="0" />
+      </div>
+      <div class="col-6">
+        <label>Số lượng Bad</label>
+        <input id="mgrQtyBad" type="number" min="0" value="0" />
+      </div>
+    </div>
+    <div class="row">
+      <button id="btnMgrSend">Gửi request</button>
+      <button class="ghost" id="btnMgrReload">Tải request pending</button>
+    </div>
+    <pre id="mgrResult"></pre>
+  </div>
+
+  <div class="card">
+    <h2>📥 Request đang chờ (của trạm của tôi)</h2>
+    <div id="mgrPending"><em>Chưa tải dữ liệu...</em></div>
+  </div>
+</div>
+
+<!-- ===================== ADMIN AREA ===================== -->
+<div id="areaAdmin" class="hide">
+  <div class="card">
+    <h2>🛡️ Duyệt yêu cầu điều phối (Admin)</h2>
+    <div class="row" style="margin-bottom:8px">
+      <button id="btnAdminReload">Tải request pending</button>
+    </div>
+    <div id="adminPending"><em>Chưa tải dữ liệu...</em></div>
+  </div>
+</div>
+
+<script>
+const BASE_URL = window.location.origin + "/webAPI";
+let currentUser = JSON.parse(localStorage.getItem("userInfo")) || null;
+
+// ===== Helpers =====
+const $ = (id)=>document.getElementById(id);
+const setText = (id, text)=>{ const el=$(id); if(el) el.textContent = text; };
+const show = (id, yes)=>{ const el=$(id); if(!el) return; el.classList.toggle('hide', !yes); };
+const authHeader = ()=> currentUser?.token ? {"Authorization": "Bearer "+currentUser.token} : {};
+
+function whoami(){
+  const info = currentUser ? {
+    id: currentUser.id,
+    fullName: currentUser.fullName,
+    role: currentUser.role,
+    tokenPreview: currentUser.token?.slice(0,20)+"…" } : 'Chưa đăng nhập.';
+  $("whoami").textContent = typeof info==='string'? info : JSON.stringify(info, null, 2);
+  $("pillRoleText").textContent = currentUser?.role || 'Guest';
+}
+
+function routeByRole(){
+  const role = (currentUser?.role||'').toLowerCase();
+  const isManager = role === 'manager';
+  const isAdmin   = role === 'admin';
+  const isDriver  = role === 'driver';
+
+  // Only one area visible at a time
+  show('areaDriverGuest', !(isManager||isAdmin)); // hide for Manager/Admin
+  show('areaManager', isManager);
+  show('areaAdmin', isAdmin);
+
+  // Load role-specific data
+  if(isDriver){
+    loadPackages();
+    loadBookingOptions();
+    loadBookings();
+  } else if(isManager){
+    loadMgrPending();
+  } else if(isAdmin){
+    loadAdminPending();
+  } else {
+    // Guest
+    loadPackages();
+  }
+}
+
+// =================== AUTH ===================
+$("btnLogin").addEventListener("click", async ()=>{
+  const email = $("loginEmail").value.trim();
+  const password = $("loginPassword").value.trim();
+  const resBox = $("loginResult");
+  if(!email || !password){ resBox.textContent = "Nhập đầy đủ email + mật khẩu!"; return; }
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/login`,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({email,password})
+    });
+    const data = await res.json();
+    if(data.status==="success"){
+      currentUser = { id:data.user.id, fullName:data.user.fullName, role:data.user.role, token:data.token };
+      localStorage.setItem("userInfo", JSON.stringify(currentUser));
+      resBox.textContent = `✅ Đăng nhập thành công!\nUser: ${currentUser.fullName}\nRole: ${currentUser.role}`;
+      whoami();
+      routeByRole();
+    } else {
+      resBox.textContent = "❌ "+ (data.message||'Login failed');
+    }
+  } catch(err){ resBox.textContent = "❌ "+ err; }
+});
+
+$("btnLogout").addEventListener("click", ()=>{
+  localStorage.removeItem("userInfo");
+  currentUser = null;
+  alert("✅ Bạn đã đăng xuất!");
+  whoami();
+  routeByRole();
+});
+
+// Demo pills to quickly view role-specific UI (for local testing only)
+$("btnSwitchToDriver").onclick=()=>{ currentUser={id:1,fullName:'Tester',role:'Driver',token:currentUser?.token||''}; localStorage.setItem('userInfo',JSON.stringify(currentUser)); whoami(); routeByRole(); };
+$("btnSwitchToManager").onclick=()=>{ currentUser={id:2,fullName:'Manager Demo',role:'Manager',token:currentUser?.token||''}; localStorage.setItem('userInfo',JSON.stringify(currentUser)); whoami(); routeByRole(); };
+$("btnSwitchToAdmin").onclick=()=>{ currentUser={id:3,fullName:'Admin Demo',role:'Admin',token:currentUser?.token||''}; localStorage.setItem('userInfo',JSON.stringify(currentUser)); whoami(); routeByRole(); };
+
+// ============ DRIVER / GUEST FEATURES ============
+async function loadPackages(){
+  const container = $("packageContainer"); if(!container) return;
+  try{
+    const res = await fetch(`${BASE_URL}/api/getpackages`);
+    const data = await res.json();
+    container.innerHTML="";
+    if(!Array.isArray(data) || data.length===0){ container.textContent="Không có gói pin"; return; }
+    data.forEach(pkg=>{
+      const div = document.createElement("div");
+      div.className="package-card";
+      div.innerHTML=`<h3>${pkg.name}</h3>
+                     <p>${pkg.description||''}</p>
+                     <p class="price">${Number(pkg.price).toLocaleString("vi-VN")} VNĐ / tháng</p>`;
+      if(currentUser && currentUser.role?.toLowerCase()==="driver"){
+        const btn = document.createElement("button");
+        btn.textContent="Mua ngay";
+        btn.onclick=()=> buyPackage(pkg.packageId, pkg.price);
+        div.appendChild(btn);
+      }
+      container.appendChild(div);
+    });
+  }catch(err){ container.textContent="❌ Lỗi: "+err; }
+}
+
+function buyPackage(packageId, amount){
+  if(!currentUser || !currentUser.token){ alert("⚠️ Cần đăng nhập"); return; }
+  const url = `${BASE_URL}/api/payment?userId=${currentUser.id}&packageId=${packageId}&amount=${Math.round(amount)}&orderType=buyPackage`;
+  window.location.href = url;
+}
+
+async function loadBookingOptions(){
+  const stationSelect = $("bookingStation"); if(!stationSelect) return;
+  try{
+    const res = await fetch(`${BASE_URL}/api/getstations`);
+    const stationsRes = await res.json();
+    stationSelect.innerHTML="";
+    if(!stationsRes.data || stationsRes.data.length===0){ stationSelect.innerHTML="<option>❌ Không có trạm</option>"; return; }
+    stationsRes.data.forEach(st=>{
+      const opt=document.createElement("option");
+      opt.value=st.Station_ID; opt.textContent=st.Name; stationSelect.appendChild(opt);
+    });
+  }catch(err){ stationSelect.innerHTML="<option>❌ Lỗi tải trạm</option>"; }
+}
+
+$("btnBooking").addEventListener("click", async () => {
+  const resultBox = $("bookingResult");
+  if (!currentUser || !currentUser.token) { alert("⚠️ Cần đăng nhập"); return; }
+
+  const batteryType = $("batteryType").value;
+  const stationSelect = $("bookingStation");
+  const bookingTime = $("bookingTime").value;
+  if (!batteryType || !stationSelect.value || !bookingTime) { resultBox.textContent = "⚠️ Điền đầy đủ thông tin!"; return; }
+  const stationName = stationSelect.options[stationSelect.selectedIndex].text;
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/secure/booking`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader() },
+      body: JSON.stringify({ stationName, batteryModel: batteryType, bookingTime })
+    });
+    const data = await res.json();
+    if (res.ok) { resultBox.textContent = "✅ Đặt trước thành công!\n" + JSON.stringify(data, null, 2); loadBookings(); }
+    else { resultBox.textContent = "❌ " + (data.error || JSON.stringify(data)); }
+  } catch (err) { resultBox.textContent = "❌ " + err; }
+});
+
+$("btnReloadBookings").addEventListener("click", loadBookings);
+
+async function loadBookings(){
+  const container = $("bookingsContainer"); if(!container) return;
+  if (!currentUser || !currentUser.token) { container.innerHTML = "<em>Vui lòng đăng nhập để xem danh sách.</em>"; return; }
+  container.innerHTML = "<em>Đang tải...</em>";
+  try {
+    const res = await fetch(`${BASE_URL}/api/secure/getBookings`, { headers: { ...authHeader() } });
+    const text = await res.text();
+    if (!text || !text.trim()) { container.innerHTML = `<span style="color:#c00">❌ Empty response (HTTP ${res.status})</span>`; return; }
+    let data; try { data = JSON.parse(text); } catch (e) { container.innerHTML = `<span style=\"color:#c00\">❌ Non-JSON: ${text.slice(0,200)}</span>`; return; }
+    if (!res.ok) { container.innerHTML = `<span style=\"color:#c00\">❌ ${data.error || 'Lỗi tải danh sách'}</span>`; return; }
+    renderBookings(container, Array.isArray(data) ? data : []);
+  } catch (err) { container.innerHTML = `<span style=\"color:#c00\">❌ ${err}</span>`; }
+}
+
+function renderBookings(container, items){
+  if (!items.length) { container.innerHTML = "<em>Chưa có đặt chỗ nào.</em>"; return; }
+  const rows = items.map((bk) => {
+    const id = bk.bookingId ?? "";
+    const stationName = bk.stationName ?? "";
+    const csName = bk.chargingStationName ?? "";
+    const slotCode = bk.slotCode ?? (bk.slotId ?? "");
+    const modelReq = bk.batteryModelRequested ?? bk.batteryRequest ?? "";
+    const status = bk.status ?? "";
+    const t1 = bk.bookingTime ? fmtTime(bk.bookingTime) : "";
+    const t2 = bk.expiredDate ? fmtTime(bk.expiredDate) : "";
+    const pkg = bk.packageName ?? "";
+    return `
+      <tr>
+        <td class="code">${id}</td>
+        <td>${stationName || "-"}</td>
+        <td>${csName || "-"}</td>
+        <td class="code">${slotCode || "-"}</td>
+        <td>${modelReq || "-"}</td>
+        <td><span class="badge">${status}</span></td>
+        <td class="code">${t1}</td>
+        <td class="code">${t2}</td>
+        <td>${pkg || "-"}</td>
+      </tr>`;
+  }).join("");
+
+  container.innerHTML = `
+    <div style="overflow:auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Trạm</th>
+            <th>Charging Station</th>
+            <th>Slot</th>
+            <th>Model yêu cầu</th>
+            <th>Trạng thái</th>
+            <th>Thời gian</th>
+            <th>Hết hạn</th>
+            <th>Gói</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function fmtTime(s){ try { if (s.includes('T')) { const d=new Date(s); if(!isNaN(d.getTime())) return d.toLocaleString('vi-VN'); } const s2=s.replace(' ','T'); const d2=new Date(s2); if(!isNaN(d2.getTime())) return d2.toLocaleString('vi-VN'); } catch(_) {} return s; }
+
+// Check-in / Swap
+$("btnCheckin").addEventListener("click", async () => {
+  const bookingId = $("checkinBookingId").value.trim();
+  const resBox = $("checkinResult");
+  if (!bookingId) { resBox.textContent = "⚠️ Nhập Booking ID"; return; }
+  if (!currentUser || !currentUser.token) { alert("⚠️ Cần đăng nhập"); return; }
+  resBox.textContent = "⏳ Đang xử lý...";
+  try {
+    const formData = new URLSearchParams(); formData.append("bookingId", bookingId);
+    const res = await fetch(`${BASE_URL}/api/checkin`, { method: "POST", headers: { ...authHeader(), "Content-Type": "application/x-www-form-urlencoded" }, body: formData.toString() });
+    const data = await res.json();
+    if (data.error) { resBox.textContent = "❌ " + data.error; }
+    else { resBox.textContent = "✅ Swap thành công:\n" + JSON.stringify(data, null, 2); loadBookings(); }
+  } catch (err) { resBox.textContent = "❌ Lỗi: " + err; }
+});
+
+// ============ MANAGER FEATURES ============
+$("btnMgrSend").addEventListener('click', async ()=>{
+  if(!currentUser?.token) { alert('⚠️ Cần đăng nhập'); return; }
+  const stationName = $("mgrStationName").value.trim();
+  const batteryName = $("mgrBatteryName").value.trim();
+  const qtyGood = Number($("mgrQtyGood").value||0);
+  const qtyAverage = Number($("mgrQtyAvg").value||0);
+  const qtyBad = Number($("mgrQtyBad").value||0);
+  if(!stationName || !batteryName){ $("mgrResult").textContent = '⚠️ Nhập đủ tên trạm và loại pin'; return; }
+  try{
+    const form = new URLSearchParams();
+    form.append('stationName', stationName);
+    form.append('batteryName', batteryName);
+    form.append('qtyGood', String(qtyGood));
+    form.append('qtyAverage', String(qtyAverage));
+    form.append('qtyBad', String(qtyBad));
+    const res = await fetch(`${BASE_URL}/api/secure/dispatchRequest`, { method:'POST', headers:{ ...authHeader(), 'Content-Type':'application/x-www-form-urlencoded' }, body: form.toString() });
+    const text = await res.text();
+    let data; try{ data = JSON.parse(text); } catch{ data = { raw:text }; }
+    if(res.ok && data.success){ $("mgrResult").textContent = '✅ Tạo request thành công: #' + data.requestId; loadMgrPending(); }
+    else { $("mgrResult").textContent = '❌ ' + (data.message || text); }
+  }catch(err){ $("mgrResult").textContent = '❌ ' + err; }
+});
+
+$("btnMgrReload").addEventListener('click', loadMgrPending);
+
+async function loadMgrPending(){
+  const box = $("mgrPending"); box.innerHTML = '<em>Đang tải...</em>';
+  try{
+    const res = await fetch(`${BASE_URL}/api/secure/dispatchPending`, { headers:{ ...authHeader() } });
+    const data = await res.json();
+    if(!res.ok){ box.innerHTML = `<span style=\"color:#c00\">❌ ${(data&&data.message)||'Lỗi tải'}</span>`; return; }
+    renderDispatchTable(box, data, { showApprove:false });
+  }catch(err){ box.innerHTML = `<span style=\"color:#c00\">❌ ${err}</span>`; }
+}
+
+// ============ ADMIN FEATURES ============
+$("btnAdminReload").addEventListener('click', loadAdminPending);
+
+async function loadAdminPending(){
+  const box = $("adminPending"); box.innerHTML = '<em>Đang tải...</em>';
+  try{
+    const res = await fetch(`${BASE_URL}/api/secure/admindispatchPending`, { headers:{ ...authHeader() } });
+    const data = await res.json();
+    if(!res.ok){ box.innerHTML = `<span style=\"color:#c00\">❌ ${(data&&data.message)||'Lỗi tải'}</span>`; return; }
+    renderDispatchTable(box, data, { showApprove:true });
+  }catch(err){ box.innerHTML = `<span style=\"color:#c00\">❌ ${err}</span>`; }
+}
+
+function renderDispatchTable(container, items, opts){
+  if(!Array.isArray(items) || !items.length){ container.innerHTML = '<em>Không có request nào.</em>'; return; }
+  const rows = items.map((it)=>{
+    const approveBtn = opts.showApprove ? `<button class="small" data-approve="${it.requestId}">Duyệt</button>` : '';
+    return `<tr>
+      <td class="code">${it.requestId}</td>
+      <td>${it.stationRequestName||'-'}</td>
+      <td>${it.batteryName||'-'}</td>
+      <td class="code">${it.qtyGood}</td>
+      <td class="code">${it.qtyAverage}</td>
+      <td class="code">${it.qtyBad}</td>
+      <td><span class="badge">${it.status}</span></td>
+      <td class="code">${it.requestTime||''}</td>
+      <td>${approveBtn}</td>
+    </tr>`;
+  }).join('');
+  container.innerHTML = `
+    <div style="overflow:auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th><th>Trạm yêu cầu</th><th>Loại pin</th>
+            <th>Good</th><th>Average</th><th>Bad</th>
+            <th>Trạng thái</th><th>Thời gian yêu cầu</th><th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  if(opts.showApprove){
+    container.querySelectorAll('button[data-approve]').forEach(btn=>{
+      btn.addEventListener('click', ()=> approveRequest(btn.getAttribute('data-approve')));
+    });
+  }
+}
+
+async function approveRequest(requestId){
+  if(!confirm(`Duyệt request #${requestId}?`)) return;
+  try{
+    const form = new URLSearchParams(); form.append('requestId', String(requestId));
+    const res = await fetch(`${BASE_URL}/api/secure/dispatchApprove`, { method:'POST', headers:{ ...authHeader(), 'Content-Type':'application/x-www-form-urlencoded' }, body: form.toString() });
+    const data = await res.json();
+    if(res.ok && data.success){ alert('✅ Đã duyệt!'); loadAdminPending(); }
+    else { alert('❌ '+ (data.message||'Approve failed')); }
+  }catch(err){ alert('❌ '+err); }
+}
+
+// ===== Boot =====
+whoami();
+routeByRole();
+</script>
+</body>
+</html>
