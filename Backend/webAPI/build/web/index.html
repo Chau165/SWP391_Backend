@@ -116,27 +116,32 @@
             <pre id="linkResult"></pre>
         </div>
 
-        <!-- Comment card -->
-        <div class="card" id="commentCard">
+        <!-- Comment card (Driver only) -->
+        <div class="card" id="commentCard" style="display:none;">
             <h2>Gửi nhận xét (Chỉ dành cho Driver)</h2>
             <pre id="commentStatus"></pre>
-            <label for="commentStation">Chọn trạm:</label>
+            <label for="commentStation">Chọn giao dịch:</label>
             <select id="commentStation"></select>
             <label for="commentContent">Nội dung:</label>
             <textarea id="commentContent" rows="4" style="width:100%; padding:8px; border-radius:4px; border:1px solid #aaa;"></textarea>
             <button onclick="submitComment()">Gửi nhận xét</button>
             <pre id="commentResult"></pre>
+        </div>
 
-            <div id="adminCommentControls" style="display:none; margin-top:10px;">
-                <h3>Admin: Xem tất cả nhận xét</h3>
-                <button onclick="fetchCommentsForAdmin()">Lấy nhận xét</button>
-                <pre id="commentsList"></pre>
-            </div>
+        <!-- Admin Controls (Admin only) -->
+        <div class="card" id="adminCommentControls" style="display:none;">
+            <h2>Admin: Quản lý nhận xét</h2>
+            <button onclick="fetchCommentsForAdmin()">Lấy nhận xét</button>
+            <pre id="commentsList"></pre>
         </div>
 
         <script>
-            // 👉 BASE_URL sẽ tự động lấy context path (khỏi hardcode)
-            const BASE_URL = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "");
+            // 👉 BASE_URL - lấy context path của ứng dụng
+            // Ví dụ: http://localhost:8080/webAPI => BASE_URL = http://localhost:8080/webAPI
+            const BASE_URL = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+            console.log('DEBUG - BASE_URL:', BASE_URL);
+            console.log('DEBUG - Full URL:', window.location.href);
+            
             let loggedUserId = null; // lưu userId sau login
             let loggedUserRole = null; // role của user (driver/staff/admin)
 
@@ -156,16 +161,35 @@
             try {
             const data = JSON.parse(text);
             loggedUserId = data?.user?.id || null;
-            loggedUserRole = data?.user?.role || null;
-            // show admin controls if role is admin
-            if (loggedUserRole && loggedUserRole.toLowerCase() === 'admin') {
-                const adminCtl = document.getElementById('adminCommentControls');
+            loggedUserRole = (data?.user?.role || '').toLowerCase();
+            
+            console.log('DEBUG login - userId:', loggedUserId, 'role:', loggedUserRole);
+            
+            // Hide all comment-related UI by default
+            const commentCard = document.getElementById('commentCard');
+            const adminCtl = document.getElementById('adminCommentControls');
+            
+            if (loggedUserRole === 'admin') {
+                // Admin: hide comment form, show only admin controls
+                console.log('DEBUG - User is Admin, showing admin controls');
+                if (commentCard) commentCard.style.display = 'none';
                 if (adminCtl) adminCtl.style.display = 'block';
+            } else if (loggedUserRole === 'driver') {
+                // Driver: show comment form (will check swap status), hide admin controls
+                console.log('DEBUG - User is Driver, will check swap status');
+                if (commentCard) commentCard.style.display = 'block';
+                if (adminCtl) adminCtl.style.display = 'none';
+                // Check if driver has completed swaps
+                loadStationsForSelect();
+            } else {
+                // Staff or other: hide everything
+                console.log('DEBUG - User is Staff/Other, hiding all comment UI');
+                if (commentCard) commentCard.style.display = 'none';
+                if (adminCtl) adminCtl.style.display = 'none';
             }
-            // after login, re-check user's swap transactions and load stations
-            loadStationsForSelect();
             } catch {
             loggedUserId = null;
+            loggedUserRole = null;
             }
             } catch (err) {
             document.getElementById("loginResult").textContent = "❌ Lỗi: " + err;
@@ -174,20 +198,29 @@
 
             // Load stations into the comment station select (based on session user's swap transactions)
             async function loadStationsForSelect() {
+            console.log('🔵 loadStationsForSelect - STARTED');
             const sel = document.getElementById('commentStation');
             const statusBox = document.getElementById('commentStatus');
             const textarea = document.getElementById('commentContent');
             const submitBtn = document.querySelector("button[onclick='submitComment()']");
-            if (!sel) return;
+            if (!sel) {
+                console.error('❌ commentStation select not found!');
+                return;
+            }
             // default: disable comment form until we check
-            sel.innerHTML = '<option value="">-- Chọn trạm --</option>';
+            console.log('🔵 Resetting select and disabling form...');
+            sel.innerHTML = '<option value="">-- Chọn giao dịch --</option>';
             sel.disabled = true;
             if (textarea) textarea.disabled = true;
             if (submitBtn) submitBtn.disabled = true;
             statusBox.textContent = '';
+            console.log('🔵 Select reset, innerHTML:', sel.innerHTML);
             try {
             // call server to check swaps for the session user
-            const res = await fetch(`${BASE_URL}/api/checkUserSwaps`, { credentials: 'include' });
+            const url = `${BASE_URL}/api/checkUserSwaps`;
+            console.log('DEBUG loadStationsForSelect - calling:', url);
+            const res = await fetch(url, { credentials: 'include' });
+            console.log('DEBUG loadStationsForSelect - response status:', res.status);
             if (res.status === 401) {
                 statusBox.textContent = 'Vui lòng đăng nhập để gửi nhận xét.';
                 // hide comment card
@@ -200,6 +233,7 @@
                 return;
             }
             if (res.status === 204) {
+                console.warn('DEBUG loadStationsForSelect - 204 No Content: No completed swaps found');
                 statusBox.textContent = 'Bạn chưa có giao dịch hoàn thành (Completed). Không thể gửi nhận xét.';
                 // keep comment card visible but disabled
                 document.getElementById('commentCard').style.display = 'block';
@@ -207,35 +241,54 @@
             }
             if (!res.ok) {
                 // fallback: try to load all stations but keep comment disabled
-                statusBox.textContent = 'Lỗi kiểm tra giao dịch: HTTP ' + res.status;
+                console.error('DEBUG loadStationsForSelect - Error response:', res.status, res.statusText);
+                statusBox.textContent = 'Lỗi kiểm tra giao dịch: HTTP ' + res.status + ' - URL: ' + url;
                 return;
             }
-            const data = await res.json();
+            
+            // Try to get response body for debugging
+            const responseText = await res.text();
+            console.log('DEBUG loadStationsForSelect - Raw response:', responseText);
+            
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error('DEBUG loadStationsForSelect - Failed to parse JSON:', e);
+                statusBox.textContent = 'Lỗi: Server trả về dữ liệu không hợp lệ';
+                return;
+            }
+            
+            console.log('✅ DEBUG loadStationsForSelect - Parsed data:', data);
+            console.log('✅ DEBUG loadStationsForSelect - Is array?', Array.isArray(data));
+            console.log('✅ DEBUG loadStationsForSelect - Length:', data?.length);
             if (!Array.isArray(data) || data.length === 0) {
+                console.warn('⚠️ Empty or invalid data array');
                 statusBox.textContent = 'Bạn chưa có giao dịch hoàn thành (Completed). Không thể gửi nhận xét.';
                 return;
             }
 
-            // populate station select - display Station Name but value is Swap ID
+            // populate station select with swap options (each option = one completed swap)
+            console.log('🔵 Populating dropdown with', data.length, 'swaps...');
             sel.innerHTML = '';
-            data.forEach(item => {
-                // swapId is the ID from SwapTransaction table
+            data.forEach((item, idx) => {
+                // Each item has swapId, stationId, name, address, totalBattery
                 const swapId = item.swapId;
-                const stationName = item.name || item.Name || 'Station';
-                const stationAddress = item.address || '';
-                
+                const stationName = item.name || ('Station ' + item.stationId);
                 const opt = document.createElement('option');
-                opt.value = swapId;  // IMPORTANT: value is swapId, not stationId
-                opt.text = stationName + (stationAddress ? ' (' + stationAddress + ')' : '');
+                opt.value = swapId;  // Store swapId as value
+                opt.text = stationName + ' (Swap #' + swapId + ')';
                 sel.appendChild(opt);
+                console.log(`  ✅ Added option ${idx + 1}: value=${swapId}, text="${opt.text}"`);
             });
+            console.log('✅ Final select.innerHTML:', sel.innerHTML);
 
             // show comment card and enable form
             document.getElementById('commentCard').style.display = 'block';
             sel.disabled = false;
             if (textarea) textarea.disabled = false;
             if (submitBtn) submitBtn.disabled = false;
-            statusBox.textContent = 'Bạn có lịch sử giao dịch hoàn thành. Vui lòng chọn trạm để gửi nhận xét.';
+            statusBox.textContent = 'Bạn có lịch sử giao dịch hoàn thành. Vui lòng chọn giao dịch để gửi nhận xét.';
 
             // if only 1 swap, preselect it
             if (data.length === 1) {
@@ -250,94 +303,68 @@
 
             async function submitComment() {
             if (!loggedUserId) { alert('Vui lòng đăng nhập trước khi gửi nhận xét'); return; }
-            const swapId = document.getElementById('commentStation').value;  // This is now swapId
+            const swapId = document.getElementById('commentStation').value;
             const content = document.getElementById('commentContent').value.trim();
-            if (!swapId) { alert('Vui lòng chọn trạm'); return; }
+            if (!swapId) { alert('Vui lòng chọn giao dịch'); return; }
             if (!content) { alert('Vui lòng nhập nội dung nhận xét'); return; }
+            console.log('DEBUG submitComment - swapId:', swapId, 'content:', content);
             try {
             const res = await fetch(`${BASE_URL}/api/comment`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ swapId: parseInt(swapId, 10), content })  // Send swapId instead of stationId
+            body: JSON.stringify({ swapId: parseInt(swapId, 10), content })
             });
             const txt = await res.text();
+            console.log('DEBUG submitComment - response:', txt);
             document.getElementById('commentResult').textContent = txt;
-            if (res.ok) {
-                // Clear form on success
-                document.getElementById('commentContent').value = '';
-            }
             } catch (err) {
+            console.error('DEBUG submitComment - error:', err);
             document.getElementById('commentResult').textContent = '❌ Lỗi: ' + err;
             }
             }
 
-            // Admin: fetch all comments
+            // Admin: fetch all comments with enriched data (userName, stationName)
             async function fetchCommentsForAdmin() {
-            try {
-            const res = await fetch(`${BASE_URL}/api/comment`, { credentials: 'include' });
-            if (!res.ok) {
-                document.getElementById('commentsList').textContent = 'Không thể lấy comments: HTTP ' + res.status;
-                return;
-            }
+                console.log('DEBUG fetchCommentsForAdmin - called');
+                try {
+                    const res = await fetch(`${BASE_URL}/api/comment`, { credentials: 'include' });
+                    if (!res.ok) {
+                        document.getElementById('commentsList').textContent = 'Không thể lấy comments: HTTP ' + res.status;
+                        return;
+                    }
+                    const data = await res.json();
+                    console.log('DEBUG fetchCommentsForAdmin - data:', data);
+                    
+                    if (!Array.isArray(data) || data.length === 0) {
+                        document.getElementById('commentsList').textContent = 'Không có nhận xét nào.';
+                        return;
+                    }
 
-            // Check user's swap transactions (called when user enters ID and clicks check)
-            async function checkMyTransactions() {
-            const idInput = document.getElementById('checkUserId').value;
-            const resultBox = document.getElementById('checkTxResult');
-            resultBox.textContent = '';
-            try {
-            // call server which validates session and returns the user's swaps
-            const res = await fetch(`${BASE_URL}/api/checkUserSwaps`, { credentials: 'include' });
-            if (res.status === 401) {
-                resultBox.textContent = 'Vui lòng đăng nhập trước khi kiểm tra giao dịch.';
-                return;
-            }
-            if (res.status === 204 || res.status === 204) {
-                resultBox.textContent = 'Bạn chưa thực hiện giao dịch nào. Không thể gửi nhận xét.';
-                return;
-            }
-            if (!res.ok) {
-                resultBox.textContent = 'Lỗi khi kiểm tra giao dịch: HTTP ' + res.status;
-                return;
-            }
-            const data = await res.json();
-            if (!Array.isArray(data) || data.length === 0) {
-                resultBox.textContent = 'Bạn chưa thực hiện giao dịch nào. Không thể gửi nhận xét.';
-                return;
-            }
-
-            // populate station select with unique station entries from returned data
-            const sel = document.getElementById('commentStation');
-            sel.innerHTML = '<option value="">-- Chọn trạm --</option>';
-            const seen = new Set();
-            data.forEach(item => {
-                const stationId = item.stationId || item.stationId || item.Station_ID || item.stationId || item.stationId;
-                const name = item.name || item.Name || ('Station ' + stationId);
-                if (!seen.has(stationId)) {
-                    seen.add(stationId);
-                    const opt = document.createElement('option');
-                    opt.value = stationId;
-                    opt.text = name;
-                    sel.appendChild(opt);
+                    // Format: User Name, Content, Time Post, Station Name
+                    let html = '<div style="font-family: monospace;">';
+                    data.forEach((c, idx) => {
+                        const userName = c.userName || 'N/A';
+                        const stationName = c.stationName || 'N/A';
+                        const content = c.content || '';
+                        const timePost = c.timePost || c.time_Post || '';
+                        
+                        html += `<div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">`;
+                        html += `<strong>#${idx + 1}</strong><br>`;
+                        html += `<strong>User:</strong> ${userName}<br>`;
+                        html += `<strong>Station:</strong> ${stationName}<br>`;
+                        html += `<strong>Time:</strong> ${timePost}<br>`;
+                        html += `<strong>Content:</strong> ${content}<br>`;
+                        html += `</div>`;
+                    });
+                    html += '</div>';
+                    
+                    document.getElementById('commentsList').innerHTML = html;
+                } catch (err) {
+                    console.error('DEBUG fetchCommentsForAdmin - error:', err);
+                    document.getElementById('commentsList').textContent = '❌ Lỗi: ' + err;
                 }
-            });
-            resultBox.textContent = 'Tìm thấy ' + seen.size + ' trạm liên quan đến giao dịch của bạn.';
-            } catch (err) {
-            document.getElementById('checkTxResult').textContent = '❌ Lỗi: ' + err;
             }
-            }
-            const data = await res.json();
-            document.getElementById('commentsList').textContent = JSON.stringify(data, null, 2);
-            } catch (err) {
-            document.getElementById('commentsList').textContent = '❌ Lỗi: ' + err;
-            }
-            }
-
-            // Auto load stations when page loads
-            window.addEventListener('load', () => {
-            loadStationsForSelect();
-            });
 
             // ===== Register =====
             async function register() {

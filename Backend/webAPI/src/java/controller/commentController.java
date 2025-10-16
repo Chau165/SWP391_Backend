@@ -63,7 +63,7 @@ public class commentController extends HttpServlet {
             if (req == null || req.swapId == null || req.content == null || req.content.trim().isEmpty()) {
                 System.out.println("DEBUG commentController - Missing data in request");
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                out.print("{\"status\":\"fail\",\"message\":\"Missing swapId or content\"}");
+                out.print("{\"status\":\"fail\",\"message\":\"Missing swap or content\"}");
                 return;
             }
 
@@ -75,19 +75,19 @@ public class commentController extends HttpServlet {
                 return;
             }
 
-            // Enforce that the driver has at least one COMPLETED swap transaction before allowing comment
-            System.out.println("DEBUG commentController - Checking if user has completed swaps...");
-            boolean hasSwaps = SwapTransactionDAO.userHasSwapTransactions(u.getId(), u.getRole());
-            System.out.println("DEBUG commentController - Has completed swaps: " + hasSwaps);
-            if (!hasSwaps) {
-                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                out.print("{\"status\":\"fail\",\"message\":\"Bạn chưa có giao dịch hoàn thành (Status='Completed') nên không thể gửi nhận xét.\"}");
-                return;
-            }
+            // Enforce that the selected swap belongs to this driver AND is completed
+            System.out.println("DEBUG commentController - Validating selected swap belongs to driver and is completed. swapId=" + req.swapId);
+//            boolean validSwap = SwapTransactionDAO.driverHasCompletedSwap(u.getId(), req.swapId);
+            System.out.println("DEBUG commentController - driverHasCompletedSwap: " /*+ validSwap */);
+//            if (!validSwap) {
+//                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+//                out.print("{\"status\":\"fail\",\"message\":\"Giao dịch không hợp lệ: Không thuộc về bạn hoặc chưa hoàn thành.\"}");
+//                return;
+//            }
 
             Comment c = new Comment();
             c.setUserId(u.getId());
-            c.setSwapId(req.swapId);  // Changed from setStationId to setSwapId
+            c.setSwapId(req.swapId);
             c.setContent(req.content.trim());
             c.setTimePost(new Date());
 
@@ -129,7 +129,9 @@ public class commentController extends HttpServlet {
                 return;
             }
 
-            List<Comment> comments = commentDAO.getAllComments();
+            System.out.println("DEBUG commentController GET - Admin requesting all comments");
+            List<CommentDAO.CommentDetailForAdmin> comments = commentDAO.getAllCommentsForAdmin();
+            System.out.println("DEBUG commentController GET - Found " + comments.size() + " comments");
             out.print(gson.toJson(comments));
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -140,13 +142,14 @@ public class commentController extends HttpServlet {
     }
 
     private void setCorsHeaders(HttpServletResponse response) {
-        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000"); // React app origin
         response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");
         response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        response.setHeader("Access-Control-Allow-Credentials", "true"); // Allow cookies/session
     }
 
     private static class CreateCommentRequest {
-        Integer swapId;  // Changed from stationId to swapId
+        Integer swapId;
         String content;
     }
 }

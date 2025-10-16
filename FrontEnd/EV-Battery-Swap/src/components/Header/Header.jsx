@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import logo from "../../assets/react.svg";
 import "./Header.css";
 import { Link, useLocation } from 'react-router-dom';
+import { useUser } from '../../contexts/UserContext';
 
 // CHỈNH SỬA: Nhận prop onLoginClick từ App.jsx
 export default function Header({ onLoginClick }) { 
+  const { user, isLoggedIn, logout } = useUser();
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [showBatteryDropdown, setShowBatteryDropdown] = useState(false);
@@ -89,20 +91,45 @@ export default function Header({ onLoginClick }) {
           </Link>
         </nav>
         
-        {/* BỔ SUNG: Phần tử chứa nút Login (đã được định kiểu trong CSS) */}
+        {/* User Actions */}
         <div className="actions">
-            <a 
+          {isLoggedIn ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <span style={{ 
+                fontSize: '14px', 
+                color: '#fff', 
+                fontWeight: '500',
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                padding: '8px 12px',
+                borderRadius: '20px'
+              }}>
+                {user?.fullName || user?.email} ({user?.role})
+              </span>
+              <a 
                 href="#" 
                 className="cta login" 
                 onClick={(e) => { 
-                    e.preventDefault(); 
-                    onLoginClick(); // Gọi hàm mở Modal
+                  e.preventDefault(); 
+                  logout();
                 }}
+                style={{ backgroundColor: '#dc3545' }}
+              >
+                Logout
+              </a>
+            </div>
+          ) : (
+            <a 
+              href="#" 
+              className="cta login" 
+              onClick={(e) => { 
+                e.preventDefault(); 
+                onLoginClick(); // Gọi hàm mở Modal
+              }}
             >
-                Login
+              Login
             </a>
+          )}
         </div>
-        {/* KẾT THÚC BỔ SUNG */}
       </div>
     </header>
   );

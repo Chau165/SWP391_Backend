@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { useUser } from '../../contexts/UserContext';
 import './LoginModal.css';
 
 
@@ -8,6 +9,8 @@ import './LoginModal.css';
  * @param {function} onClose - Hàm đóng modal
  */
 export default function LoginModal({ isOpen, onClose }) {
+  const { login, isLoading } = useUser();
+  
   // Add register form toggle and state
   const [isRegister, setIsRegister] = useState(false);
   const [registerData, setRegisterData] = useState({
@@ -33,9 +36,8 @@ export default function LoginModal({ isOpen, onClose }) {
     password: '',
   });
 
-  //State để quản lý lỗi và trạng thái tải
+  //State để quản lý lỗi
   const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
   
   // Hàm xử lý thay đổi input
   const handleChange = (e) => {
@@ -60,41 +62,21 @@ export default function LoginModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  // BỔ SUNG 3: Hàm gọi API Đăng nhập
+  // Hàm gọi API Đăng nhập
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null); // Xóa lỗi cũ
-    setIsLoading(true); // Bắt đầu tải
 
-    try {
-      // ----------------------------------------------------
-      // THAY ĐỔI ĐƯỜNG DẪN API VÀ CÁC HEADER CỦA BẠN TẠI ĐÂY
-      // ----------------------------------------------------
-      const response = await fetch('https://74dd58621a21.ngrok-free.app/webAPI/api/login', {
-        method: 'POST',
-        headers: {
-          "Content-Type": "application/json"
-        },
-        // THAY THẾ DỮ LIỆU CỨNG BẰNG BIẾN formData
-        body: JSON.stringify(formData) 
-      });
-      
-      const data = await response.json();
-
-      if (response.ok) {
-        // Xử lý thành công: Lưu token, chuyển hướng người dùng
-        alert('Đăng nhập thành công! Token: ' + data.token);
-        // Ví dụ: localStorage.setItem('token', data.token);
-        onClose(); // Đóng modal
-      } else {
-        // Xử lý thất bại: Hiển thị thông báo lỗi từ API
-        setError(data.message || 'Email hoặc mật khẩu không đúng.');
-      }
-    } catch (err) {
-      // Xử lý lỗi kết nối mạng
-      setError('Lỗi kết nối mạng. Vui lòng thử lại.');
-    } finally {
-      setIsLoading(false); // Kết thúc tải
+    const result = await login(formData.email, formData.password);
+    
+    if (result.success) {
+      // Đăng nhập thành công
+      onClose(); // Đóng modal
+      // Reset form
+      setFormData({ email: '', password: '' });
+    } else {
+      // Hiển thị lỗi
+      setError(result.message);
     }
   };
 

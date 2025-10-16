@@ -61,29 +61,4 @@ public class StationDAO {
         }
         return list;
     }
-
-    public static List<Station> getStationsByUserId(int userId) {
-        List<Station> list = new ArrayList<>();
-    String sql = "SELECT DISTINCT st.Station_ID, st.Name, st.Address, st.Total_Battery "
-        + "FROM swap_transactions s JOIN Station st ON s.Station_ID = st.Station_ID "
-        + "WHERE s.Driver_ID = ? OR s.Staff_ID = ?";
-        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-        ps.setInt(1, userId);
-        ps.setInt(2, userId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    Station station = new Station(
-                            rs.getInt("Station_ID"),
-                            rs.getString("Name"),
-                            rs.getString("Address"),
-                            rs.getInt("Total_Battery")
-                    );
-                    list.add(station);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return list;
-    }
 }

@@ -58,19 +58,23 @@ public class loginController extends HttpServlet {
                 return;
             }
 
-            // Validate password rules (basic)
-            if (!mylib.ValidationUtil.isValidPassword(loginReq.password)) {
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                out.print("{\"status\":\"fail\",\"message\":\"Password must be at least 6 characters and include letters and digits\"}");
-                return;
-            }
-
             Users user = usersDAO.checkLogin(loginReq.email, loginReq.password);
 
             if (user != null) {
+                // DEBUG: Log user details
+                System.out.println("=== LOGIN SUCCESS ===");
+                System.out.println("User ID: " + user.getId());
+                System.out.println("User Email: " + user.getEmail());
+                System.out.println("User Role: " + user.getRole());
+                System.out.println("Role length: " + (user.getRole() != null ? user.getRole().length() : "null"));
+                System.out.println("=====================");
+                
                 HttpSession session = request.getSession();
                 session.setAttribute("User", user);
                 String json = gson.toJson(user);
+                
+                System.out.println("DEBUG - JSON response: " + json);
+                
                 response.setStatus(HttpServletResponse.SC_OK);
                 out.print("{\"status\":\"success\",\"user\":" + json + "}");
             } else {
@@ -93,10 +97,10 @@ public class loginController extends HttpServlet {
     //    response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     //}
   private void setCorsHeaders(HttpServletResponse response) {
-    response.setHeader("Access-Control-Allow-Origin", "*"); // cho mọi origin
+    response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000"); // React app origin
     response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");
     response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    // bỏ Access-Control-Allow-Credentials khi dùng *
+    response.setHeader("Access-Control-Allow-Credentials", "true"); // Allow cookies/session
 }
 
     private static class LoginRequest {

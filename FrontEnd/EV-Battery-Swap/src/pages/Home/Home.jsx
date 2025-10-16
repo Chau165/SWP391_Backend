@@ -3,6 +3,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import mapboxgl from 'mapbox-gl';
 import reactLogo from '../../assets/react.svg';
 import ReservationForm from '../../components/ReserveForm/ReservationForm';
+import UserDashboard from '../../components/UserDashboard/UserDashboard';
 
 export default function Home() {
   const mapContainer = useRef(null);
@@ -110,6 +111,9 @@ export default function Home() {
           boxShadow: '0 4px 24px rgba(0,0,0,0.15)'
         }}
       />
+
+      {/* User Dashboard - Role-based content */}
+      <UserDashboard />
 
       {/* Reservation Form */}
       <ReservationForm stations={stations} />

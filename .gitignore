@@ -1,0 +1,20 @@
+# Ignore SQL test and diagnostic files
+*.sql
+
+# Ignore markdown note files
+*.md
+!README.md
+
+# NetBeans build files
+Backend/webAPI/build/
+Backend/webAPI/dist/
+Backend/webAPI/nbproject/private/
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
