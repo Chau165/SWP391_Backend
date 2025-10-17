@@ -67,23 +67,23 @@ public class commentController extends HttpServlet {
                 return;
             }
 
-            // Only Drivers can comment. Staff cannot.
+            // Only Drivers can comment. Staff/Manager cannot.
             if (u.getRole() == null || !u.getRole().equalsIgnoreCase("driver")) {
                 System.out.println("DEBUG commentController - User is not Driver, role: " + u.getRole());
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                out.print("{\"status\":\"fail\",\"message\":\"Chỉ tài xế (Driver) mới được gửi nhận xét.\"}");
+                out.print("{\"status\":\"fail\",\"message\":\"Chỉ tài xế (Driver) mới được gửi nhận xét. Staff và Manager không có quyền này.\"}");
                 return;
             }
 
-            // Enforce that the selected swap belongs to this driver AND is completed
-            System.out.println("DEBUG commentController - Validating selected swap belongs to driver and is completed. swapId=" + req.swapId);
-//            boolean validSwap = SwapTransactionDAO.driverHasCompletedSwap(u.getId(), req.swapId);
-            System.out.println("DEBUG commentController - driverHasCompletedSwap: " /*+ validSwap */);
-//            if (!validSwap) {
-//                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-//                out.print("{\"status\":\"fail\",\"message\":\"Giao dịch không hợp lệ: Không thuộc về bạn hoặc chưa hoàn thành.\"}");
-//                return;
-//            }
+            // Enforce that the driver has at least one COMPLETED swap transaction before allowing comment
+            System.out.println("DEBUG commentController - Checking if user has completed swaps...");
+            boolean hasSwaps = SwapTransactionDAO.userHasSwapTransactions(u.getId(), u.getRole());
+            System.out.println("DEBUG commentController - Has completed swaps: " + hasSwaps);
+            if (!hasSwaps) {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                out.print("{\"status\":\"fail\",\"message\":\"Bạn chưa có giao dịch hoàn thành (Status='Completed') nên không thể gửi nhận xét.\"}");
+                return;
+            }
 
             Comment c = new Comment();
             c.setUserId(u.getId());
@@ -142,10 +142,9 @@ public class commentController extends HttpServlet {
     }
 
     private void setCorsHeaders(HttpServletResponse response) {
-        response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000"); // React app origin
+        response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");
         response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-        response.setHeader("Access-Control-Allow-Credentials", "true"); // Allow cookies/session
     }
 
     private static class CreateCommentRequest {

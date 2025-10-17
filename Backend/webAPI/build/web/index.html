@@ -182,8 +182,8 @@
                 // Check if driver has completed swaps
                 loadStationsForSelect();
             } else {
-                // Staff or other: hide everything
-                console.log('DEBUG - User is Staff/Other, hiding all comment UI');
+                // Staff, Manager or other: hide everything (no comment permission)
+                console.log('DEBUG - User is Staff/Manager/Other (role=' + loggedUserRole + '), hiding all comment UI');
                 if (commentCard) commentCard.style.display = 'none';
                 if (adminCtl) adminCtl.style.display = 'none';
             }
@@ -275,9 +275,10 @@
                 // Each item has swapId, stationId, name, address, totalBattery
                 const swapId = item.swapId;
                 const stationName = item.name || ('Station ' + item.stationId);
+                const stationAddress = item.address || 'Không có địa chỉ';
                 const opt = document.createElement('option');
                 opt.value = swapId;  // Store swapId as value
-                opt.text = stationName + ' (Swap #' + swapId + ')';
+                opt.text = stationName + ' (' + stationAddress + ')';
                 sel.appendChild(opt);
                 console.log(`  ✅ Added option ${idx + 1}: value=${swapId}, text="${opt.text}"`);
             });

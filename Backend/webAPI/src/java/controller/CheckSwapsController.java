@@ -50,9 +50,9 @@ public class CheckSwapsController extends HttpServlet {
             String role = u.getRole();
             System.out.println("DEBUG CheckSwapsController - User: ID=" + userId + ", Role=" + role);
 
-            // Only drivers are allowed to comment. If the logged user is Staff, return 403 so frontend hides comment UI.
+            // Only drivers are allowed to comment. If the logged user is Staff/Manager, return 403 so frontend hides comment UI.
             if (role == null || !role.equalsIgnoreCase("driver")) {
-                System.out.println("DEBUG CheckSwapsController - User is not Driver, returning 403");
+                System.out.println("DEBUG CheckSwapsController - User is not Driver (role=" + role + "), returning 403");
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 out.print(gson.toJson(new StationWithSwap[0]));
                 return;
