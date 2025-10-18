@@ -12,6 +12,7 @@ import Home from './pages/Home/Home';
 import AboutUs from './pages/About Us/AboutUs';
 import Battery from './pages/Battery Electric/Battery';
 import BatteryPin from './pages/Battery Electric/BatteryPin'; // Thêm import
+import ForgotPassword from './pages/ForgotPassword';
 
 function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false); 
@@ -32,6 +33,7 @@ function App() {
               {/* Đảm bảo Route này đã được thêm vào */}
               <Route path="/battery" element={<Battery />} /> 
               <Route path="/battery-pin" element={<BatteryPin />} /> {/* Thêm route mới */}
+              <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Forgot Password */}
               {/* THÊM ROUTE CHO TRANG 404 NẾU CẦN: <Route path="*" element={<NotFound />} /> */}
             </Routes>
         </main>

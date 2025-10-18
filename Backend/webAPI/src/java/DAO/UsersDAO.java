@@ -4,7 +4,6 @@ import DTO.Users;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
 import mylib.DBUtils;
 
 public class UsersDAO {
@@ -51,25 +50,86 @@ public class UsersDAO {
     }
 
     public int insertUser(Users u) {
-        String sql = "INSERT INTO Users(FullName, Phone, Email, Password, Role, Station_ID) VALUES (?, ?, ?, ?, ?, ?)";
-        try ( Connection conn = DBUtils.getConnection();  
-                PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        // SQL Server specific: Use OUTPUT clause to get generated ID
+        String sql = "INSERT INTO Users(FullName, Phone, Email, Password, Role, Station_ID) OUTPUT INSERTED.ID VALUES (?, ?, ?, ?, ?, ?)";
+        
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DBUtils.getConnection();
+            ps = conn.prepareStatement(sql);
+            
+            System.out.println("[UsersDAO] insertUser - START");
+            System.out.println("[UsersDAO] Email: " + u.getEmail());
+            System.out.println("[UsersDAO] Role: " + u.getRole());
+            
             ps.setString(1, u.getFullName());
             ps.setString(2, u.getPhone());
             ps.setString(3, u.getEmail());
             ps.setString(4, u.getPassword());
             ps.setString(5, u.getRole());
-            ps.setNull(6, java.sql.Types.INTEGER);
+            
+            // SQL Server: Station_ID có thể cần xử lý khác
+            if (u.getStationId() == null) {
+                ps.setNull(6, java.sql.Types.INTEGER);
+            } else {
+                ps.setInt(6, u.getStationId());
+            }
 
-            ps.executeUpdate();
-
-            ResultSet rs = ps.getGeneratedKeys();
+            System.out.println("[UsersDAO] Executing SQL with OUTPUT clause");
+            
+            // Execute and get result set with ID directly
+            rs = ps.executeQuery();
+            
             if (rs.next()) {
-                return rs.getInt(1);
+                int newId = rs.getInt(1);
+                System.out.println("[UsersDAO] ✅ Insert successful! New user ID: " + newId);
+                return newId;
+            } else {
+                System.err.println("[UsersDAO] ❌ Insert executed but no ID returned!");
+                return -1;
             }
         } catch (Exception e) {
+            System.err.println("[UsersDAO] ❌ INSERT FAILED - Exception: " + e.getClass().getName());
+            System.err.println("[UsersDAO] Message: " + e.getMessage());
             e.printStackTrace();
+        } finally {
+            // Close resources
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (Exception e) {
+                System.err.println("[UsersDAO] Error closing resources: " + e.getMessage());
+            }
         }
         return -1;
+    }
+
+    /**
+     * Cập nhật mật khẩu cho user
+     * @param email Email của user
+     * @param newPassword Mật khẩu mới
+     * @return true nếu cập nhật thành công
+     */
+    public boolean updatePassword(String email, String newPassword) {
+        String sql = "UPDATE Users SET Password = ? WHERE Email = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setString(1, newPassword);
+            ps.setString(2, email);
+            
+            int rowsAffected = ps.executeUpdate();
+            System.out.println("[UsersDAO] Password updated for email: " + email);
+            return rowsAffected > 0;
+            
+        } catch (Exception e) {
+            System.err.println("[UsersDAO] Error updating password: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 }

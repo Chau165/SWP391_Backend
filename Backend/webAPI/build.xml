@@ -68,4 +68,19 @@
     nbproject/build-impl.xml file. 
 
     -->
+    
+    <!-- Custom target to copy jakarta.mail and activation JARs to build folder -->
+    <target name="-post-compile">
+        <echo message="Copying Jakarta Mail and Activation JARs to build folder..."/>
+        <copy file="${basedir}/lib/jakarta.mail-2.0.1.jar" 
+              todir="${build.web.dir}/WEB-INF/lib" 
+              overwrite="true" 
+              verbose="true"/>
+        <copy file="${basedir}/lib/jakarta.activation-api-2.1.0.jar" 
+              todir="${build.web.dir}/WEB-INF/lib" 
+              overwrite="true" 
+              verbose="true"/>
+        <echo message="Jakarta Mail and Activation JARs copied successfully!"/>
+    </target>
+    
 </project>

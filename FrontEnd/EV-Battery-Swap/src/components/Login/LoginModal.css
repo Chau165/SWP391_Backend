@@ -146,6 +146,20 @@
     background-color: #fff5f5;
 }
 
+/* Style cho thông báo thành công */
+.success-message {
+    color: #22c55e; /* Màu xanh */
+    font-size: 14px;
+    margin-top: -10px;
+    margin-bottom: 15px;
+    text-align: center;
+    padding: 8px;
+    border: 1px solid #86efac;
+    border-radius: 6px;
+    background-color: #f0fdf4;
+    font-weight: 600;
+}
+
 /* Style cho nút khi đang tải */
 .login-button:disabled {
     opacity: 0.6;

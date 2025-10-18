@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useUser } from '../../contexts/UserContext';
+import ForgotPasswordModal from './ForgotPasswordModal';
 import './LoginModal.css';
 
 
@@ -13,6 +14,10 @@ export default function LoginModal({ isOpen, onClose }) {
   
   // Add register form toggle and state
   const [isRegister, setIsRegister] = useState(false);
+  
+  // Add forgot password modal state
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  
   const [registerData, setRegisterData] = useState({
     name: '',
     email: '',
@@ -82,12 +87,15 @@ export default function LoginModal({ isOpen, onClose }) {
 
 
   return (
-    <div className="modal-backdrop">
-      <div className="login-modal" ref={modalRef}>
-        <button className="close-btn" onClick={onClose} aria-label="Đóng">
-          &times;
-        </button>
-        {!isRegister && (
+    <>
+      {/* Login Modal */}
+      {!isForgotPasswordOpen && (
+        <div className="modal-backdrop">
+          <div className="login-modal" ref={modalRef}>
+            <button className="close-btn" onClick={onClose} aria-label="Đóng">
+              &times;
+            </button>
+            {!isRegister && (
           <>
             <h2 className="modal-title">Đăng nhập</h2>
             <p className="modal-subtitle">Chào mừng trở lại. Vui lòng nhập thông tin của bạn.</p>
@@ -120,7 +128,16 @@ export default function LoginModal({ isOpen, onClose }) {
                 {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
               </button>
               <div className="form-options">
-                <a href="#" className="forgot-password">Quên mật khẩu?</a>
+                <a 
+                  href="#" 
+                  className="forgot-password"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsForgotPasswordOpen(true); // Mở modal quên mật khẩu
+                  }}
+                >
+                  Quên mật khẩu?
+                </a>
               </div>
             </form>
             <p className="signup-link">
@@ -188,7 +205,22 @@ export default function LoginModal({ isOpen, onClose }) {
             </p>
           </>
         )}
+        </div>
       </div>
-    </div>
+      )}
+      
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={isForgotPasswordOpen}
+        onClose={() => {
+          setIsForgotPasswordOpen(false);
+          // Không cần mở lại LoginModal vì isOpen được quản lý từ parent
+        }}
+        onSuccess={() => {
+          setIsForgotPasswordOpen(false);
+          // Quay về LoginModal để user đăng nhập
+        }}
+      />
+    </>
   );
 }

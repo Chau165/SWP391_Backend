@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+d<!DOCTYPE html>
 <html lang="vi">
     <head>
         <meta charset="UTF-8">
@@ -62,6 +62,10 @@
             <input type="text" id="loginEmail" placeholder="Email" />
             <input type="password" id="loginPassword" placeholder="Mật khẩu" />
             <button onclick="login()">Đăng nhập</button>
+            <!-- Quên mật khẩu link (mở modal) -->
+            <div style="margin-top:8px;">
+                <a href="#" id="forgotLink" onclick="openForgotModal(); return false;">Quên mật khẩu?</a>
+            </div>
             <pre id="loginResult"></pre>
         </div>
 
@@ -133,6 +137,30 @@
             <h2>Admin: Quản lý nhận xét</h2>
             <button onclick="fetchCommentsForAdmin()">Lấy nhận xét</button>
             <pre id="commentsList"></pre>
+        </div>
+
+        <!-- Forgot Password Modal (simple, client-side) -->
+        <div id="forgotModal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999;">
+            <div style="background:white; width:400px; max-width:90%; margin:80px auto; padding:25px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+                <h3 id="forgotTitle">Quên mật khẩu</h3>
+                <div id="forgotStep1">
+                    <p>Nhập email đã đăng ký để nhận OTP.</p>
+                    <input type="text" id="fpEmail" placeholder="Email" style="width:100%; padding:8px; margin-bottom:8px;" />
+                    <button onclick="fpSendOtp()">Gửi OTP</button>
+                </div>
+                <div id="forgotStep2" style="display:none; margin-top:10px;">
+                    <p>Nhập mã OTP đã nhận qua email.</p>
+                    <input type="text" id="fpOtp" placeholder="OTP" style="width:100%; padding:8px; margin-bottom:8px;" />
+                    <button onclick="fpVerifyOtp()">Xác thực OTP</button>
+                </div>
+                <div id="forgotStep3" style="display:none; margin-top:10px;">
+                    <p>Nhập mật khẩu mới.</p>
+                    <input type="password" id="fpNewPassword" placeholder="Mật khẩu mới" style="width:100%; padding:8px; margin-bottom:8px;" />
+                    <button onclick="fpResetPassword()">Đổi mật khẩu</button>
+                </div>
+                <div id="forgotMsg" style="margin-top:10px; color:green;"></div>
+                <div style="text-align:right; margin-top:12px;"><button onclick="closeForgotModal()">Đóng</button></div>
+            </div>
         </div>
 
         <script>
@@ -475,6 +503,86 @@
             } catch (err) {
             document.getElementById("linkResult").textContent = "❌ Lỗi fetch: " + err;
             }
+            }
+
+            // ===== Forgot Password UI Handlers =====
+            function openForgotModal() {
+                console.log('openForgotModal called!');
+                const modal = document.getElementById('forgotModal');
+                if (!modal) {
+                    console.error('forgotModal element not found!');
+                    return;
+                }
+                modal.style.display = 'block';
+                document.getElementById('forgotStep1').style.display = 'block';
+                document.getElementById('forgotStep2').style.display = 'none';
+                document.getElementById('forgotStep3').style.display = 'none';
+                document.getElementById('forgotMsg').textContent = '';
+                console.log('Modal opened, display:', modal.style.display);
+            }
+
+            function closeForgotModal() {
+                document.getElementById('forgotModal').style.display = 'none';
+            }
+
+            async function fpSendOtp() {
+                const email = document.getElementById('fpEmail').value.trim();
+                if (!email) { alert('Vui lòng nhập email'); return; }
+                try {
+                    const res = await fetch(`${BASE_URL}/api/forgot-password`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email })
+                    });
+                    const txt = await res.text();
+                    document.getElementById('forgotMsg').textContent = txt;
+                    if (res.ok) {
+                        document.getElementById('forgotStep1').style.display = 'none';
+                        document.getElementById('forgotStep2').style.display = 'block';
+                    }
+                } catch (err) {
+                    document.getElementById('forgotMsg').textContent = 'Lỗi: ' + err;
+                }
+            }
+
+            async function fpVerifyOtp() {
+                const email = document.getElementById('fpEmail').value.trim();
+                const otp = document.getElementById('fpOtp').value.trim();
+                if (!otp) { alert('Vui lòng nhập OTP'); return; }
+                try {
+                    const res = await fetch(`${BASE_URL}/api/verify-otp`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, otp })
+                    });
+                    const txt = await res.text();
+                    document.getElementById('forgotMsg').textContent = txt;
+                    if (res.ok) {
+                        document.getElementById('forgotStep2').style.display = 'none';
+                        document.getElementById('forgotStep3').style.display = 'block';
+                    }
+                } catch (err) {
+                    document.getElementById('forgotMsg').textContent = 'Lỗi: ' + err;
+                }
+            }
+
+            async function fpResetPassword() {
+                const email = document.getElementById('fpEmail').value.trim();
+                const otp = document.getElementById('fpOtp').value.trim();
+                const newPassword = document.getElementById('fpNewPassword').value;
+                if (!newPassword) { alert('Vui lòng nhập mật khẩu mới'); return; }
+                try {
+                    const res = await fetch(`${BASE_URL}/api/reset-password`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, otp, newPassword })
+                    });
+                    const txt = await res.text();
+                    document.getElementById('forgotMsg').textContent = txt;
+                    if (res.ok) {
+                        // success: close modal after short delay
+                        setTimeout(() => { closeForgotModal(); }, 1500);
+                    }
+                } catch (err) {
+                    document.getElementById('forgotMsg').textContent = 'Lỗi: ' + err;
+                }
             }
         </script>
 
