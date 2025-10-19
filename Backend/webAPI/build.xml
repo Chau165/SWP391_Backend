@@ -72,6 +72,10 @@
     <!-- Custom target to copy jakarta.mail and activation JARs to build folder -->
     <target name="-post-compile">
         <echo message="Copying Jakarta Mail and Activation JARs to build folder..."/>
+        <copy file="${basedir}/lib/angus-activation-2.0.1.jar" 
+              todir="${build.web.dir}/WEB-INF/lib" 
+              overwrite="true" 
+              verbose="true"/>
         <copy file="${basedir}/lib/jakarta.mail-2.0.1.jar" 
               todir="${build.web.dir}/WEB-INF/lib" 
               overwrite="true" 

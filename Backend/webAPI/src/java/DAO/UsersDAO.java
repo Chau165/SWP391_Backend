@@ -132,4 +132,36 @@ public class UsersDAO {
             return false;
         }
     }
+
+    /**
+     * Kiểm tra email đã tồn tại trong hệ thống chưa
+     * @param email Email cần kiểm tra
+     * @return true nếu email đã tồn tại
+     */
+    public boolean checkEmailExists(String email) {
+        return existsByEmail(email);
+    }
+
+    /**
+     * Tạo tài khoản người dùng mới
+     * @param fullName Họ tên
+     * @param email Email
+     * @param phone Số điện thoại
+     * @param password Mật khẩu (đã mã hóa)
+     * @param role Vai trò (Customer, Admin, Staff, etc.)
+     * @return true nếu tạo thành công
+     */
+    public boolean createUser(String fullName, String email, String phone, String password, String role) {
+        Users newUser = new Users();
+        newUser.setFullName(fullName);
+        newUser.setEmail(email);
+        newUser.setPhone(phone);
+        newUser.setPassword(password);
+        newUser.setRole(role);
+        newUser.setStationId(null); // Station_ID mặc định null cho user mới
+        
+        int userId = insertUser(newUser);
+        return userId > 0;
+    }
 }
+

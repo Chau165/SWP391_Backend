@@ -19,19 +19,75 @@ export default function LoginModal({ isOpen, onClose }) {
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   
   const [registerData, setRegisterData] = useState({
-    name: '',
+    fullName: '',
+    phone: '',
     email: '',
     password: '',
     confirm: ''
   });
+  
+  const [registerError, setRegisterError] = useState('');
+  const [registerLoading, setRegisterLoading] = useState(false);
+  
   const handleRegisterChange = (e) => {
     setRegisterData({ ...registerData, [e.target.id.replace('reg-', '')]: e.target.value });
+    setRegisterError(''); // Clear error when user types
   };
-  const handleRegisterSubmit = (e) => {
+  
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Add register API logic here
-    alert('Đăng ký thành công!');
-    setIsRegister(false);
+    setRegisterError('');
+    
+    // Validate passwords match
+    if (registerData.password !== registerData.confirm) {
+      setRegisterError('Mật khẩu xác nhận không khớp!');
+      return;
+    }
+    
+    // Validate password length
+    if (registerData.password.length < 6) {
+      setRegisterError('Mật khẩu phải có ít nhất 6 ký tự!');
+      return;
+    }
+    
+    setRegisterLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:8080/webAPI3/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: registerData.fullName,
+          phone: registerData.phone,
+          email: registerData.email,
+          password: registerData.password
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        alert('Đăng ký thành công! Vui lòng đăng nhập.');
+        setIsRegister(false);
+        // Reset form
+        setRegisterData({
+          fullName: '',
+          phone: '',
+          email: '',
+          password: '',
+          confirm: ''
+        });
+      } else {
+        setRegisterError(data.error || 'Đăng ký thất bại. Vui lòng thử lại.');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setRegisterError('Không thể kết nối đến server. Vui lòng thử lại sau.');
+    } finally {
+      setRegisterLoading(false);
+    }
   };
   const modalRef = useRef();
 
@@ -152,14 +208,28 @@ export default function LoginModal({ isOpen, onClose }) {
             <p className="modal-subtitle">Tạo tài khoản mới để sử dụng dịch vụ.</p>
             <form className="login-form" onSubmit={handleRegisterSubmit}>
               <div className="form-group">
-                <label htmlFor="reg-name">Họ và tên</label>
+                <label htmlFor="reg-fullName">Họ và tên</label>
                 <input 
                   type="text" 
-                  id="reg-name" 
+                  id="reg-fullName" 
                   placeholder="Nhập họ và tên" 
                   required 
-                  value={registerData.name}
+                  value={registerData.fullName}
                   onChange={handleRegisterChange}
+                  disabled={registerLoading}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="reg-phone">Số điện thoại</label>
+                <input 
+                  type="tel" 
+                  id="reg-phone" 
+                  placeholder="Nhập số điện thoại (VD: 0909123456)" 
+                  required 
+                  pattern="0[0-9]{9}"
+                  value={registerData.phone}
+                  onChange={handleRegisterChange}
+                  disabled={registerLoading}
                 />
               </div>
               <div className="form-group">
@@ -171,6 +241,7 @@ export default function LoginModal({ isOpen, onClose }) {
                   required 
                   value={registerData.email}
                   onChange={handleRegisterChange}
+                  disabled={registerLoading}
                 />
               </div>
               <div className="form-group">
@@ -178,10 +249,12 @@ export default function LoginModal({ isOpen, onClose }) {
                 <input 
                   type="password" 
                   id="reg-password" 
-                  placeholder="Nhập mật khẩu" 
+                  placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)" 
                   required 
+                  minLength="6"
                   value={registerData.password}
                   onChange={handleRegisterChange}
+                  disabled={registerLoading}
                 />
               </div>
               <div className="form-group">
@@ -191,12 +264,28 @@ export default function LoginModal({ isOpen, onClose }) {
                   id="reg-confirm" 
                   placeholder="Nhập lại mật khẩu" 
                   required 
+                  minLength="6"
                   value={registerData.confirm}
                   onChange={handleRegisterChange}
+                  disabled={registerLoading}
                 />
               </div>
-              <button type="submit" className="login-button">
-                Đăng ký
+              
+              {registerError && (
+                <div className="error-message" style={{
+                  color: '#d32f2f',
+                  backgroundColor: '#ffebee',
+                  padding: '10px',
+                  borderRadius: '5px',
+                  marginBottom: '15px',
+                  fontSize: '14px'
+                }}>
+                  {registerError}
+                </div>
+              )}
+              
+              <button type="submit" className="login-button" disabled={registerLoading}>
+                {registerLoading ? 'Đang xử lý...' : 'Đăng ký'}
               </button>
             </form>
             <p className="signup-link">
