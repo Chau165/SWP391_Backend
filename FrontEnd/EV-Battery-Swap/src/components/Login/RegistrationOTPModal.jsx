@@ -2,36 +2,41 @@ import React, { useState, useRef, useEffect } from 'react';
 import './LoginModal.css';
 
 /**
- * RegistrationOTPModal - Xác thực email khi đăng ký
- * Flow: Bước 1 (Nhập Email → Gửi OTP) → Bước 2 (Nhập OTP → Tạo tài khoản)
+ * RegistrationOtpModal - Component xử lý xác thực OTP khi đăng ký
+ * Flow: Nhập Email → Nhận OTP → Nhập OTP → Xác thực thành công → Cho phép đăng ký
  */
-const RegistrationOTPModal = ({ 
+export default function RegistrationOtpModal({ 
   isOpen, 
   onClose, 
-  initialEmail,
-  registrationData,
-  onVerifySuccess 
-}) => {
+  onOtpVerified,
+  registrationEmail 
+}) {
   const modalRef = useRef();
-  const [step, setStep] = useState(1); // 1: Nhập Email, 2: Nhập OTP
-  const [email, setEmail] = useState('');
+  const [step, setStep] = useState(1); // 1: Email, 2: OTP
+  const [email, setEmail] = useState(registrationEmail || '');
   const [otp, setOtp] = useState('');
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const [error, setError] = useState(null);
+  const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const API_BASE_URL = 'http://localhost:8080/webAPI3';
 
-  // Reset khi đóng modal hoặc khi mở với email mới
+  // Cập nhật email từ form đăng ký
   useEffect(() => {
-    if (isOpen) {
-      setStep(1);
-      setEmail(initialEmail || '');
-      setOtp('');
-      setError('');
-      setMessage('');
+    if (registrationEmail) {
+      setEmail(registrationEmail);
     }
-  }, [isOpen, initialEmail]);
+  }, [registrationEmail]);
+
+  // Reset khi đóng modal
+  useEffect(() => {
+    if (!isOpen) {
+      setStep(1);
+      setOtp('');
+      setError(null);
+      setMessage(null);
+    }
+  }, [isOpen]);
 
   // Đóng modal khi click backdrop
   useEffect(() => {
@@ -51,11 +56,11 @@ const RegistrationOTPModal = ({
 
   if (!isOpen) return null;
 
-  // BƯỚC 1: Gửi OTP qua email
-  const handleSendOTP = async (e) => {
+  // STEP 1: Gửi OTP qua email
+  const handleSendOtp = async (e) => {
     e.preventDefault();
-    setError('');
-    setMessage('');
+    setError(null);
+    setMessage(null);
     setIsLoading(true);
 
     try {
@@ -67,188 +72,139 @@ const RegistrationOTPModal = ({
 
       const data = await response.json();
 
-      if (response.ok) {
-        setMessage('Mã OTP đã được gửi tới email của bạn!');
+      if (data.status === 'success') {
+        setMessage(data.message || 'Mã OTP đã được gửi đến email của bạn!');
         setTimeout(() => {
           setStep(2); // Chuyển sang bước nhập OTP
-          setMessage('');
+          setMessage(null);
         }, 1500);
       } else {
-        setError(data.error || 'Không thể gửi OTP. Vui lòng thử lại.');
+        setError(data.message || 'Không thể gửi mã OTP. Vui lòng thử lại.');
       }
-    } catch (error) {
-      console.error('Send OTP error:', error);
-      setError('Không thể kết nối đến server. Vui lòng thử lại sau.');
+    } catch (err) {
+      setError('Không thể kết nối đến server. Vui lòng thử lại.');
+      console.error('Send Registration OTP error:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // BƯỚC 2: Xác thực OTP và tạo tài khoản
-  const handleVerifyOTP = async (e) => {
+  // STEP 2: Xác thực OTP
+  const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    setError('');
-    setMessage('');
-
-    if (!otp.trim()) {
-      setError('Vui lòng nhập mã OTP');
-      return;
-    }
-
+    setError(null);
+    setMessage(null);
     setIsLoading(true);
 
     try {
-      // Step 1: Verify OTP
-      const verifyResponse = await fetch(`${API_BASE_URL}/api/verify-registration-otp`, {
+      const response = await fetch(`${API_BASE_URL}/api/verify-registration-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp: otp.trim() })
+        body: JSON.stringify({ email, otp })
       });
 
-      const verifyData = await verifyResponse.json();
+      const data = await response.json();
 
-      if (!verifyResponse.ok) {
-        setError(verifyData.error || 'Mã OTP không đúng. Vui lòng thử lại.');
-        return;
-      }
-
-      // Step 2: OTP đúng, tạo tài khoản
-      const registerResponse = await fetch(`${API_BASE_URL}/api/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registrationData)
-      });
-
-      const registerData = await registerResponse.json();
-
-      if (registerResponse.ok) {
-        setMessage('Đăng ký thành công! Vui lòng đăng nhập.');
+      if (data.status === 'success') {
+        setMessage('Xác thực thành công! Đang xử lý đăng ký...');
         setTimeout(() => {
-          onVerifySuccess();
+          onOtpVerified(email, otp); // Callback với email và OTP đã verify
           onClose();
-        }, 1500);
+        }, 1000);
       } else {
-        setError(registerData.error || 'Đăng ký thất bại. Vui lòng thử lại.');
+        setError(data.message || 'Mã OTP không hợp lệ hoặc đã hết hạn.');
       }
-
-    } catch (error) {
-      console.error('Verification error:', error);
-      setError('Không thể kết nối đến server. Vui lòng thử lại sau.');
+    } catch (err) {
+      setError('Không thể kết nối đến server. Vui lòng thử lại.');
+      console.error('Verify Registration OTP error:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // RENDER
   return (
     <div className="modal-backdrop">
       <div className="login-modal" ref={modalRef}>
-        <button className="close-btn" onClick={onClose}>
+        <button className="close-btn" onClick={onClose} aria-label="Đóng">
           &times;
         </button>
 
-        {/* BƯỚC 1: Nhập Email để gửi OTP */}
+        {/* STEP 1: Nhập Email để nhận OTP */}
         {step === 1 && (
           <>
-            <h2 className="modal-title">Xác thực Email</h2>
-            <p className="modal-subtitle">Nhập Email để nhận mã OTP</p>
-
-            <form className="login-form" onSubmit={handleSendOTP}>
+            <h2 className="modal-title">📧 Xác thực Email</h2>
+            <p className="modal-subtitle">Nhập email đã đăng ký để nhận mã OTP:</p>
+            <form className="login-form" onSubmit={handleSendOtp}>
               <div className="form-group">
-                <label htmlFor="reg-otp-email">Email</label>
+                <label htmlFor="registration-email">Email</label>
                 <input
                   type="email"
-                  id="reg-otp-email"
-                  placeholder="Nhập địa chỉ email"
+                  id="registration-email"
+                  placeholder="Nhập email của bạn"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                  autoFocus
+                  disabled={!!registrationEmail} // Nếu có email từ form đăng ký thì disable
                 />
               </div>
-
-              {error && <div className="error-message">{error}</div>}
-              {message && <div className="success-message">{message}</div>}
-
-              <button 
-                type="submit" 
-                className="login-button" 
-                disabled={isLoading}
-              >
-                {isLoading ? 'Đang gửi...' : 'Gửi OTP'}
+              {error && <p className="error-message">{error}</p>}
+              {message && <p className="success-message">{message}</p>}
+              <button type="submit" className="login-button" disabled={isLoading}>
+                {isLoading ? 'Đang gửi...' : 'Gửi mã OTP'}
               </button>
-
-              <button 
-                type="button" 
-                className="secondary-button" 
-                onClick={onClose}
-                disabled={isLoading}
-              >
-                Đóng
-              </button>
+              <p className="signup-link">
+                <a href="#" onClick={(e) => { e.preventDefault(); onClose(); }}>
+                  Đóng
+                </a>
+              </p>
             </form>
           </>
         )}
 
-        {/* BƯỚC 2: Nhập OTP để xác thực */}
+        {/* STEP 2: Nhập OTP để xác thực */}
         {step === 2 && (
           <>
-            <h2 className="modal-title">Vui lòng nhập mã OTP</h2>
+            <h2 className="modal-title">🔐 Xác thực OTP</h2>
             <p className="modal-subtitle">
-              Mã OTP đã được gửi tới <strong>{email}</strong>
+              Nhập mã OTP đã được gửi đến <strong>{email}</strong>
             </p>
-
-            <form className="login-form" onSubmit={handleVerifyOTP}>
+            <form className="login-form" onSubmit={handleVerifyOtp}>
               <div className="form-group">
-                <label htmlFor="reg-otp-code">OTP</label>
+                <label htmlFor="registration-otp">Mã OTP</label>
                 <input
                   type="text"
-                  id="reg-otp-code"
-                  placeholder="Nhập mã OTP (6 chữ số)"
+                  id="registration-otp"
+                  placeholder="Nhập 6 chữ số"
                   required
                   maxLength="6"
                   value={otp}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '');
-                    setOtp(value);
-                    setError('');
-                  }}
-                  disabled={isLoading}
-                  autoFocus
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  autoComplete="off"
                 />
               </div>
-
-              {error && <div className="error-message">{error}</div>}
-              {message && <div className="success-message">{message}</div>}
-
-              <button 
-                type="submit" 
-                className="login-button" 
-                disabled={isLoading || otp.length !== 6}
-              >
-                {isLoading ? 'Đang xác thực...' : 'Xác thực OTP'}
+              {error && <p className="error-message">{error}</p>}
+              {message && <p className="success-message">{message}</p>}
+              <button type="submit" className="login-button" disabled={isLoading}>
+                {isLoading ? 'Đang xác thực...' : 'Xác thực'}
               </button>
-
-              <button 
-                type="button" 
-                className="secondary-button" 
-                onClick={() => {
-                  setStep(1);
-                  setOtp('');
-                  setError('');
-                  setMessage('');
-                }}
-                disabled={isLoading}
-              >
-                Quay lại
-              </button>
+              <p className="signup-link">
+                Không nhận được mã?{' '}
+                <a 
+                  href="#" 
+                  onClick={(e) => { 
+                    e.preventDefault(); 
+                    setStep(1); 
+                    setOtp(''); 
+                    setError(null); 
+                  }}
+                >
+                  Gửi lại
+                </a>
+              </p>
             </form>
           </>
         )}
       </div>
     </div>
   );
-};
-
-export default RegistrationOTPModal;
+}

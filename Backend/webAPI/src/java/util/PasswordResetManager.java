@@ -26,6 +26,14 @@ public class PasswordResetManager {
         if (ok) store.remove(email.toLowerCase());
         return ok;
     }
+    
+    /**
+     * Xóa OTP của email (dùng sau khi đăng ký thành công)
+     * @param email Email cần xóa OTP
+     */
+    public static void invalidateOtp(String email) {
+        store.remove(email.toLowerCase());
+    }
 
     private static class Entry {
         final String otp;

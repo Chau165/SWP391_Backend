@@ -27,4 +27,25 @@ public class EmailUtil {
         
         return result;
     }
+    
+    /**
+     * Gửi OTP đăng ký qua email
+     * @param email Email người đăng ký
+     * @param otp Mã OTP 6 chữ số
+     * @return true nếu thành công, false nếu thất bại
+     */
+    public static boolean sendRegistrationOtp(String email, String otp) {
+        System.out.println("[EmailUtil] Sending Registration OTP to: " + email);
+        System.out.println("[EmailUtil] OTP: " + otp);
+        
+        boolean result = EmailService.sendRegistrationOtpEmail(email, otp);
+        
+        if (result) {
+            System.out.println("[EmailUtil] ✅ Registration email sent successfully");
+        } else {
+            System.err.println("[EmailUtil] ❌ Registration email failed to send");
+        }
+        
+        return result;
+    }
 }

@@ -76,7 +76,7 @@ d<!DOCTYPE html>
             <input type="text" id="regPhone" placeholder="Số điện thoại" />
             <input type="text" id="regEmail" placeholder="Email" />
             <input type="password" id="regPassword" placeholder="Mật khẩu" />
-            <button onclick="register()">Đăng ký</button>
+            <button onclick="openRegistrationOtpModal()">Đăng ký</button>
             <pre id="regResult"></pre>
         </div>
 
@@ -160,6 +160,27 @@ d<!DOCTYPE html>
                 </div>
                 <div id="forgotMsg" style="margin-top:10px; color:green;"></div>
                 <div style="text-align:right; margin-top:12px;"><button onclick="closeForgotModal()">Đóng</button></div>
+            </div>
+        </div>
+
+        <!-- Registration OTP Modal (giống Forgot Password) -->
+        <div id="registrationOtpModal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999;">
+            <div style="background:white; width:400px; max-width:90%; margin:80px auto; padding:25px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+                <h3 id="regOtpTitle">📧 Xác thực Email</h3>
+                <div id="regOtpStep1">
+                    <p>Nhập email đã đăng ký để nhận mã OTP:</p>
+                    <input type="text" id="regOtpEmail" placeholder="Email" style="width:100%; padding:8px; margin-bottom:8px;" readonly />
+                    <button onclick="regOtpSendOtp()">Gửi mã OTP</button>
+                </div>
+                <div id="regOtpStep2" style="display:none; margin-top:10px;">
+                    <p>Nhập mã OTP đã được gửi đến <strong id="regOtpEmailDisplay"></strong></p>
+                    <input type="text" id="regOtpCode" placeholder="Nhập 6 chữ số" maxlength="6" style="width:100%; padding:8px; margin-bottom:8px;" />
+                    <button onclick="regOtpVerifyAndRegister()">Xác thực và Đăng ký</button>
+                </div>
+                <div id="regOtpMsg" style="margin-top:10px; color:green;"></div>
+                <div style="text-align:right; margin-top:12px;">
+                    <button onclick="closeRegistrationOtpModal()">Đóng</button>
+                </div>
             </div>
         </div>
 
@@ -401,16 +422,196 @@ d<!DOCTYPE html>
             const phone = document.getElementById("regPhone").value.trim();
             const email = document.getElementById("regEmail").value.trim();
             const password = document.getElementById("regPassword").value.trim();
+            const otp = document.getElementById("regOtpCode").value.trim(); // Get OTP from modal
+            
+            console.log('🔵 [register] Calling register API with:', { fullName, phone, email, password: '***', otp });
+            
             try {
             const res = await fetch(`${BASE_URL}/api/register`, {
             method: "POST",
                     headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({ fullName, phone, email, password })
+                    body: JSON.stringify({ fullName, phone, email, password, otp })
             });
-            document.getElementById("regResult").textContent = await res.text();
-            } catch (err) {
-            document.getElementById("regResult").textContent = "❌ Lỗi: " + err;
+            
+            console.log('🔵 [register] API response status:', res.status);
+            const text = await res.text();
+            console.log('🔵 [register] API raw response:', text);
+            
+            document.getElementById("regResult").textContent = text;
+            
+            // If success, close modal and show success message
+            try {
+                const data = JSON.parse(text);
+                console.log('🔵 [register] Parsed response:', data);
+                
+                if (data.status === 'success') {
+                    console.log('✅ [register] Registration successful!');
+                    closeRegistrationOtpModal();
+                    alert('✅ Đăng ký thành công! Vui lòng đăng nhập.');
+                    // Clear form
+                    document.getElementById("regName").value = '';
+                    document.getElementById("regPhone").value = '';
+                    document.getElementById("regEmail").value = '';
+                    document.getElementById("regPassword").value = '';
+                    document.getElementById("regOtpCode").value = '';
+                } else {
+                    console.error('❌ [register] Registration failed:', data);
+                    document.getElementById('regOtpMsg').textContent = data.error || data.message || 'Đăng ký thất bại';
+                    document.getElementById('regOtpMsg').style.color = 'red';
+                }
+            } catch (e) {
+                // Not JSON, show as text
+                console.error('❌ [register] Response not JSON:', text);
+                document.getElementById('regOtpMsg').textContent = 'Lỗi: ' + text;
+                document.getElementById('regOtpMsg').style.color = 'red';
             }
+            } catch (err) {
+                console.error('❌ [register] Fetch error:', err);
+                document.getElementById("regResult").textContent = "❌ Lỗi: " + err;
+                document.getElementById('regOtpMsg').textContent = 'Lỗi kết nối: ' + err;
+                document.getElementById('regOtpMsg').style.color = 'red';
+            }
+            }
+
+            // ===== Registration OTP Modal Handlers =====
+            function openRegistrationOtpModal() {
+                // Validate form first
+                const fullName = document.getElementById("regName").value.trim();
+                const phone = document.getElementById("regPhone").value.trim();
+                const email = document.getElementById("regEmail").value.trim();
+                const password = document.getElementById("regPassword").value.trim();
+                
+                if (!fullName) { alert('Vui lòng nhập họ tên'); return; }
+                if (!phone) { alert('Vui lòng nhập số điện thoại'); return; }
+                if (!email) { alert('Vui lòng nhập email'); return; }
+                if (!password) { alert('Vui lòng nhập mật khẩu'); return; }
+                
+                // Open modal and populate email
+                const modal = document.getElementById('registrationOtpModal');
+                if (!modal) {
+                    console.error('registrationOtpModal element not found!');
+                    return;
+                }
+                
+                // Pre-fill email from registration form
+                document.getElementById('regOtpEmail').value = email;
+                document.getElementById('regOtpEmailDisplay').textContent = email;
+                
+                // Reset modal state
+                modal.style.display = 'block';
+                document.getElementById('regOtpStep1').style.display = 'block';
+                document.getElementById('regOtpStep2').style.display = 'none';
+                document.getElementById('regOtpMsg').textContent = '';
+                document.getElementById('regOtpCode').value = '';
+                
+                console.log('Registration OTP Modal opened, email:', email);
+            }
+
+            function closeRegistrationOtpModal() {
+                document.getElementById('registrationOtpModal').style.display = 'none';
+            }
+
+            async function regOtpSendOtp() {
+                const email = document.getElementById('regOtpEmail').value.trim();
+                if (!email) { alert('Vui lòng nhập email'); return; }
+                
+                document.getElementById('regOtpMsg').textContent = 'Đang gửi OTP...';
+                document.getElementById('regOtpMsg').style.color = 'blue';
+                
+                try {
+                    const res = await fetch(`${BASE_URL}/api/send-registration-otp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email })
+                    });
+                    const data = await res.json();
+                    
+                    console.log('Send OTP response:', data);
+                    
+                    if (res.ok && data.status === 'success') {
+                        // ✅ Success: Show message in green
+                        document.getElementById('regOtpMsg').innerHTML = 
+                            `<div style="color: green; font-weight: bold;">✅ ${data.message}</div>` +
+                            `<div style="color: gray; font-size: 12px; margin-top: 5px;">${JSON.stringify(data)}</div>`;
+                        
+                        // Move to step 2
+                        document.getElementById('regOtpStep1').style.display = 'none';
+                        document.getElementById('regOtpStep2').style.display = 'block';
+                    } else {
+                        // ❌ Fail: Show message in red
+                        document.getElementById('regOtpMsg').innerHTML = 
+                            `<div style="color: red; font-weight: bold;">❌ ${data.message || 'Không thể gửi OTP'}</div>` +
+                            `<div style="color: gray; font-size: 12px; margin-top: 5px;">${JSON.stringify(data)}</div>`;
+                    }
+                } catch (err) {
+                    document.getElementById('regOtpMsg').innerHTML = 
+                        `<div style="color: red; font-weight: bold;">❌ Lỗi: ${err}</div>`;
+                }
+            }
+
+            async function regOtpVerifyAndRegister() {
+                const email = document.getElementById('regOtpEmail').value.trim();
+                const otp = document.getElementById('regOtpCode').value.trim();
+                
+                if (!otp) { alert('Vui lòng nhập mã OTP'); return; }
+                if (otp.length !== 6) { alert('Mã OTP phải có 6 chữ số'); return; }
+                
+                console.log('🔵 [regOtpVerifyAndRegister] Starting verification for email:', email, 'OTP:', otp);
+                document.getElementById('regOtpMsg').textContent = 'Đang xác thực OTP...';
+                document.getElementById('regOtpMsg').style.color = 'blue';
+                
+                try {
+                    // Step 1: Verify OTP
+                    console.log('🔵 [Step 1] Calling verify-registration-otp API...');
+                    const verifyRes = await fetch(`${BASE_URL}/api/verify-registration-otp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, otp })
+                    });
+                    
+                    console.log('🔵 [Step 1] Verify API response status:', verifyRes.status);
+                    const verifyText = await verifyRes.text();
+                    console.log('🔵 [Step 1] Verify API raw response:', verifyText);
+                    
+                    let verifyData;
+                    try {
+                        verifyData = JSON.parse(verifyText);
+                    } catch (e) {
+                        console.error('❌ Failed to parse verify response:', e);
+                        document.getElementById('regOtpMsg').innerHTML = 
+                            `<div style="color: red; font-weight: bold;">❌ Lỗi: Server trả về dữ liệu không hợp lệ</div>`;
+                        return;
+                    }
+                    
+                    if (!verifyRes.ok || verifyData.status !== 'success') {
+                        console.error('❌ OTP verification failed:', verifyData);
+                        // ❌ Fail: Show message in red
+                        document.getElementById('regOtpMsg').innerHTML = 
+                            `<div style="color: red; font-weight: bold;">❌ ${verifyData.message || 'Mã OTP không hợp lệ hoặc đã hết hạn'}</div>` +
+                            `<div style="color: gray; font-size: 12px; margin-top: 5px;">${JSON.stringify(verifyData)}</div>`;
+                        return;
+                    }
+                    
+                    // Step 2: OTP valid, proceed with registration
+                    console.log('✅ [Step 1] OTP verified successfully!');
+                    // ✅ Success: Show message in green
+                    document.getElementById('regOtpMsg').innerHTML = 
+                        `<div style="color: green; font-weight: bold;">✅ ${verifyData.message}</div>` +
+                        `<div style="color: gray; font-size: 12px; margin-top: 5px;">${JSON.stringify(verifyData)}</div>` +
+                        `<div style="color: blue; margin-top: 10px;">Đang đăng ký...</div>`;
+                    
+                    // Wait a bit to show success message
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Step 3: Call register function
+                    console.log('🔵 [Step 2] Calling register function...');
+                    await register();
+                    
+                } catch (err) {
+                    console.error('❌ Error in regOtpVerifyAndRegister:', err);
+                    document.getElementById('regOtpMsg').innerHTML = 
+                        `<div style="color: red; font-weight: bold;">❌ Lỗi: ${err}</div>`;
+                }
             }
 
             // ===== Get Packages =====

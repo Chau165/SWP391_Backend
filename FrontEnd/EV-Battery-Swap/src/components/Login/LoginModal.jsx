@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useUser } from '../../contexts/UserContext';
 import ForgotPasswordModal from './ForgotPasswordModal';
+import RegistrationOtpModal from './RegistrationOtpModal';
 import './LoginModal.css';
 
 
@@ -17,6 +18,11 @@ export default function LoginModal({ isOpen, onClose }) {
   
   // Add forgot password modal state
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  
+  // Add registration OTP modal state
+  const [isRegistrationOtpOpen, setIsRegistrationOtpOpen] = useState(false);
+  const [verifiedEmail, setVerifiedEmail] = useState('');
+  const [verifiedOtp, setVerifiedOtp] = useState('');
   
   const [registerData, setRegisterData] = useState({
     fullName: '',
@@ -50,6 +56,14 @@ export default function LoginModal({ isOpen, onClose }) {
       return;
     }
     
+    // Open OTP modal instead of calling register API directly
+    setIsRegistrationOtpOpen(true);
+  };
+  
+  // Handle OTP verification success - then call register API
+  const handleOtpVerified = async (email, otp) => {
+    setVerifiedEmail(email);
+    setVerifiedOtp(otp);
     setRegisterLoading(true);
     
     try {
@@ -62,7 +76,8 @@ export default function LoginModal({ isOpen, onClose }) {
           fullName: registerData.fullName,
           phone: registerData.phone,
           email: registerData.email,
-          password: registerData.password
+          password: registerData.password,
+          otp: otp // Include verified OTP
         })
       });
       
@@ -79,6 +94,8 @@ export default function LoginModal({ isOpen, onClose }) {
           password: '',
           confirm: ''
         });
+        setVerifiedEmail('');
+        setVerifiedOtp('');
       } else {
         setRegisterError(data.error || 'Đăng ký thất bại. Vui lòng thử lại.');
       }
@@ -309,6 +326,14 @@ export default function LoginModal({ isOpen, onClose }) {
           setIsForgotPasswordOpen(false);
           // Quay về LoginModal để user đăng nhập
         }}
+      />
+      
+      {/* Registration OTP Modal */}
+      <RegistrationOtpModal
+        isOpen={isRegistrationOtpOpen}
+        onClose={() => setIsRegistrationOtpOpen(false)}
+        onOtpVerified={handleOtpVerified}
+        registrationEmail={registerData.email}
       />
     </>
   );
