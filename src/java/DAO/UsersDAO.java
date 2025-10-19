@@ -4,6 +4,7 @@ import DTO.Users;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import mylib.DBUtils;
 
@@ -101,14 +102,13 @@ public class UsersDAO {
         }
         return user;
     }
-    
+
     // ✅ Lấy tên người dùng (FullName) theo ID
     public String getUsernameById(int userId) {
         String sql = "SELECT FullName FROM Users WHERE ID = ?";
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try ( Connection conn = DBUtils.getConnection();  PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
-            try (ResultSet rs = ps.executeQuery()) {
+            try ( ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getString("FullName");
                 }
@@ -118,21 +118,22 @@ public class UsersDAO {
         }
         return null;
     }
+
     // Lấy Station_ID của user theo userId
-public int getStationIdByUserId(int userId) {
-    String sql = "SELECT Station_ID FROM Users WHERE ID=?";
-    try (Connection conn = DBUtils.getConnection();
-         PreparedStatement ps = conn.prepareStatement(sql)) {
-
-        ps.setInt(1, userId);
-        ResultSet rs = ps.executeQuery();
-        if (rs.next()) {
-            return rs.getInt("Station_ID");
+    public int getStationIdByUserId(int userId) throws ClassNotFoundException, SQLException {
+        String sql = "SELECT Station_ID FROM Users WHERE ID = ?"; // 👈 SỬA LẠI TÊN CỘT Ở ĐÂY
+        try ( Connection con = DBUtils.getConnection();  PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try ( ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
         }
-    } catch (Exception e) {
-        e.printStackTrace();
+        return -1;
     }
-    return -1;
+    
+    
 }
 
-}
+

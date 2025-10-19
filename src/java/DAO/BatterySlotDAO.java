@@ -3,6 +3,8 @@ package DAO;
 import DTO.BatterySlot;
 import java.sql.*;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import mylib.DBUtils;
 
 public class BatterySlotDAO {
@@ -91,59 +93,107 @@ public class BatterySlotDAO {
         picked.setState("Reserved");
         return picked;
     }
-    
-       public BatterySlot getSlotById(int slotId) {
-        String sql = "SELECT Slot_ID, Slot_Code, Slot_Type, State, Door_State, Battery_ID, Condition, Last_Update, ChargingStation_ID " +
-                     "FROM dbo.BatterySlot WHERE Slot_ID = ?";
-        try (Connection con = DBUtils.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+
+    public BatterySlot getSlotById(int slotId) {
+        String sql = "SELECT Slot_ID, Slot_Code, Slot_Type, State, Door_State, Battery_ID, Condition, Last_Update, ChargingStation_ID "
+                + "FROM dbo.BatterySlot WHERE Slot_ID = ?";
+        try ( Connection con = DBUtils.getConnection();  PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, slotId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return mapRow(rs);
+            try ( ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return null;
     }
 
     // Gỡ pin khỏi slot (đặt Battery_ID = NULL, State = 'Empty', Condition = NULL)
     public boolean removeBatteryFromSlot(int slotId) {
         String sql = "UPDATE dbo.BatterySlot SET Battery_ID = NULL, State = 'Empty', Condition = NULL, Last_Update = ? WHERE Slot_ID = ?";
-        try (Connection con = DBUtils.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+        try ( Connection con = DBUtils.getConnection();  PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.from(Instant.now()));
             ps.setInt(2, slotId);
             return ps.executeUpdate() > 0;
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return false;
     }
 
     // Đưa pin vào slot (đặt Battery_ID, State='Occupied', Condition=<Weak/Damage>)
     public boolean assignBatteryToSlot(int slotId, int batteryId, String condition) {
         String sql = "UPDATE dbo.BatterySlot SET Battery_ID = ?, State = 'Occupied', Condition = ?, Last_Update = ? WHERE Slot_ID = ?";
-        try (Connection con = DBUtils.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+        try ( Connection con = DBUtils.getConnection();  PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, batteryId);
             ps.setString(2, condition);
             ps.setTimestamp(3, Timestamp.from(Instant.now()));
             ps.setInt(4, slotId);
             return ps.executeUpdate() > 0;
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return false;
     }
 
-    private BatterySlot mapRow(ResultSet rs) throws SQLException {
-        BatterySlot s = new BatterySlot();
-        s.setSlot_ID(rs.getInt("Slot_ID"));
-        s.setSlot_Code(rs.getString("Slot_Code"));
-        s.setSlot_Type(rs.getString("Slot_Type"));
-        s.setState(rs.getString("State"));
-        s.setDoor_State(rs.getString("Door_State"));
-        int bid = rs.getInt("Battery_ID");
-        if (rs.wasNull()) bid = 0;
-        s.setBattery_ID(bid);
-        s.setCondition(rs.getString("Condition"));
-        s.setLast_Update(rs.getTimestamp("Last_Update"));
-        s.setChargingStation_ID(rs.getInt("ChargingStation_ID"));
-        return s;
+    /**
+     * Lấy danh sách tình trạng các ô sạc trong tất cả trạm sạc thuộc 1 trạm cụ
+     * thể mà nhân viên đang làm việc.
+     *
+     * @param stationId ID của trạm (Station_ID trong bảng Users)
+     * @return danh sách slot kèm thông tin pin, SoH, kiểu trạm sạc
+     */
+    public List<BatterySlot> getSlotsByStationId(int stationId) {
+        List<BatterySlot> list = new ArrayList<>();
+
+        String sql = "SELECT s.Slot_ID, s.Slot_Code, s.Slot_Type, s.State, s.Door_State, "
+                + "s.Battery_ID, s.[Condition], s.Last_Update, s.ChargingStation_ID, "
+                + "b.SoH AS BatterySoH, b.Serial_Number AS BatterySerial, "
+                + "cs.Name AS ChargingStationName, cs.Slot_Type AS ChargingSlotType "
+                + "FROM dbo.BatterySlot s "
+                + "JOIN dbo.Charging_Station cs ON s.ChargingStation_ID = cs.ChargingStation_ID "
+                + "LEFT JOIN dbo.Battery b ON s.Battery_ID = b.Battery_ID "
+                + "WHERE cs.Station_ID = ? "
+                + "ORDER BY s.Slot_ID ASC";
+
+        try ( Connection con = DBUtils.getConnection();  PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, stationId);
+
+            try ( ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
     }
+
+    private BatterySlot mapRow(ResultSet rs) throws SQLException {
+        BatterySlot slot = new BatterySlot();
+        slot.setSlot_ID(rs.getInt("Slot_ID"));
+        slot.setSlot_Code(rs.getString("Slot_Code"));
+        slot.setSlot_Type(rs.getString("Slot_Type"));
+        slot.setState(rs.getString("State"));
+        slot.setDoor_State(rs.getString("Door_State"));
+        slot.setBattery_ID((Integer) rs.getObject("Battery_ID"));
+        slot.setCondition(rs.getString("Condition"));
+        slot.setLast_Update(rs.getTimestamp("Last_Update"));
+        slot.setChargingStation_ID(rs.getInt("ChargingStation_ID"));
+
+        // ✅ Lấy thêm thông tin mở rộng
+        slot.setBatterySoH(rs.getDouble("BatterySoH"));
+        slot.setBatterySerial(rs.getString("BatterySerial"));
+        slot.setChargingStationName(rs.getString("ChargingStationName"));
+        slot.setChargingSlotType(rs.getString("ChargingSlotType"));
+
+        return slot;
+    }
+
 }

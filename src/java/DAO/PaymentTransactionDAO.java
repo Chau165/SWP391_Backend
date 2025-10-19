@@ -6,6 +6,7 @@ import mylib.DBUtils;
 
 public class PaymentTransactionDAO {
 
+    // DAO/PaymentTransactionDAO.java
     public int insertPayment(PaymentTransaction p) {
         String sql = "INSERT INTO PaymentTransaction "
                 + "(User_ID, Station_ID, Package_ID, Amount, Payment_Method, Description, Transaction_Time) "
@@ -13,15 +14,24 @@ public class PaymentTransactionDAO {
         try ( Connection conn = DBUtils.getConnection();  PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setInt(1, p.getUser_ID());
-            ps.setInt(2, p.getStation_ID());
-            if (p.getPackage_ID() == null) {
+
+            // Station_ID: NULL nếu không có
+            if (p.getStation_ID() == null || p.getStation_ID() == 0) {
+                ps.setNull(2, Types.INTEGER);
+            } else {
+                ps.setInt(2, p.getStation_ID());
+            }
+
+            // Package_ID: NULL nếu không có (ví dụ đổi pin trả tiền theo lượt)
+            if (p.getPackage_ID() == null || p.getPackage_ID() == 0) {
                 ps.setNull(3, Types.INTEGER);
             } else {
                 ps.setInt(3, p.getPackage_ID());
             }
+
             ps.setDouble(4, p.getAmount());
-            ps.setString(5, p.getPayment_Method());   // "VNPay" / "VNPAY" tùy bạn
-            ps.setString(6, p.getDescription());      // đã embed context
+            ps.setString(5, p.getPayment_Method());   // "VNPay" / "Cash" / ...
+            ps.setString(6, p.getDescription());      // mô tả ngắn
             ps.setTimestamp(7, p.getTransaction_Time());
 
             int rows = ps.executeUpdate();
@@ -31,10 +41,10 @@ public class PaymentTransactionDAO {
 
             try ( ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
-                    return rs.getInt(1); // chính là ID
+                    return rs.getInt(1);
                 }
             }
-            return -1; // không lấy được key
+            return -1;
         } catch (Exception e) {
             e.printStackTrace();
             return -1;
@@ -85,4 +95,3 @@ public class PaymentTransactionDAO {
     }
 
 }
-

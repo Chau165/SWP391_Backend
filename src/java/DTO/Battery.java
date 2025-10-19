@@ -5,7 +5,11 @@ public class Battery {
     private String serialNumber;
     private double resistance;
     private double soH;
-    private int typeId; // FK -> BatteryType.Type_ID (giả định)
+    private int typeId; // FK -> BatteryType.Type_ID
+
+   
+
+    // ====== Getter & Setter ======
 
     public int getBatteryId() { return batteryId; }
     public void setBatteryId(int batteryId) { this.batteryId = batteryId; }
@@ -21,4 +25,6 @@ public class Battery {
 
     public int getTypeId() { return typeId; }
     public void setTypeId(int typeId) { this.typeId = typeId; }
+
+  
 }

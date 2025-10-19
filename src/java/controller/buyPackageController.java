@@ -124,7 +124,7 @@ public class buyPackageController extends HttpServlet {
     private void insertPaymentRecord(int userId, int packageId, Map<String, String> vnp_Params) {
         PaymentTransaction payment = new PaymentTransaction();
         payment.setUser_ID(userId);
-        payment.setStation_ID(0); // không liên quan đến trạm
+        payment.setStation_ID(null); // không liên quan đến trạm
         payment.setPackage_ID(packageId);
         payment.setAmount(Double.parseDouble(vnp_Params.get("vnp_Amount")) / 100);
         payment.setPayment_Method("VNPay");

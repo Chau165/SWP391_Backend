@@ -21,7 +21,7 @@ public class SwaggerConfigServlet extends HttpServlet {
         // Cho phép CORS
         resp.setHeader("Access-Control-Allow-Origin", "*");
         resp.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        resp.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        resp.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
         // === Build base URL động ===
         String scheme = req.getScheme();
@@ -42,19 +42,42 @@ public class SwaggerConfigServlet extends HttpServlet {
             out.println("  \"openapi\": \"3.0.1\",");
             out.println("  \"info\": {");
             out.println("    \"title\": \"Battery Swap API\",");
-            out.println("    \"description\": \"API cho hệ thống đổi pin xe điện\",");
+            out.println("    \"description\": \"API cho hệ thống đổi pin xe điện — chia rõ theo vai trò Guest (khách), Driver (tài xế), Staff (nhân viên trạm) và Admin.\",");
             out.println("    \"version\": \"1.0.0\"");
             out.println("  },");
-            out.println("  \"servers\": [");
-            out.println("    { \"url\": \"" + baseUrl + "\", \"description\": \"dynamic server\" }");
+
+            // === Tags ===
+            out.println("  \"tags\": [");
+            out.println("    { \"name\": \"Guest\", \"description\": \"Các API dành cho người dùng chưa đăng nhập: đăng nhập, đăng ký, xem gói pin, xem trạm.\" },");
+            out.println("    { \"name\": \"Driver\", \"description\": \"Các API dành cho tài xế đã đăng nhập: liên kết xe, thanh toán, mua gói pin.\" },");
+            out.println("    { \"name\": \"Staff\", \"description\": \"Các API dành cho nhân viên trạm: quản lý pin, check-in/check-out.\" },");
+            out.println("    { \"name\": \"Admin\", \"description\": \"Các API dành cho quản trị viên hệ thống: xem báo cáo, thống kê.\" }");
             out.println("  ],");
+
+            // === Servers ===
+            out.println("  \"servers\": [");
+            out.println("    { \"url\": \"" + baseUrl + "\", \"description\": \"Dynamic server\" }");
+            out.println("  ],");
+
+            // === Security Scheme (JWT) ===
+            out.println("  \"components\": {");
+            out.println("    \"securitySchemes\": {");
+            out.println("      \"bearerAuth\": {");
+            out.println("        \"type\": \"http\",");
+            out.println("        \"scheme\": \"bearer\",");
+            out.println("        \"bearerFormat\": \"JWT\"");
+            out.println("      }");
+            out.println("    }");
+            out.println("  },");
+
             out.println("  \"paths\": {");
 
-            // ==== API Login ====
+            // ==== [GUEST] Login ====
             out.println("    \"/api/login\": {");
             out.println("      \"post\": {");
-            out.println("        \"summary\": \"Đăng nhập hệ thống\",");
-            out.println("        \"description\": \"Nhập email/password để đăng nhập\",");
+            out.println("        \"tags\": [\"Guest\"],");
+            out.println("        \"summary\": \"[Guest] Đăng nhập hệ thống\",");
+            out.println("        \"description\": \"Nhập email và mật khẩu để đăng nhập.\",");
             out.println("        \"requestBody\": {");
             out.println("          \"required\": true,");
             out.println("          \"content\": {");
@@ -66,26 +89,23 @@ public class SwaggerConfigServlet extends HttpServlet {
             out.println("                  \"password\": { \"type\": \"string\" }");
             out.println("                },");
             out.println("                \"required\": [\"email\", \"password\"]");
-            out.println("              },");
-            out.println("              \"example\": {");
-            out.println("                \"email\": \"nguyenvana@email.com\",");
-            out.println("                \"password\": \"pass123\"");
             out.println("              }");
             out.println("            }");
             out.println("          }");
             out.println("        },");
             out.println("        \"responses\": {");
             out.println("          \"200\": { \"description\": \"Đăng nhập thành công\" },");
-            out.println("          \"401\": { \"description\": \"Sai email hoặc password\" }");
+            out.println("          \"401\": { \"description\": \"Sai email hoặc mật khẩu\" }");
             out.println("        }");
             out.println("      }");
             out.println("    },");
 
-            // ==== API Register ====
+            // ==== [GUEST] Register ====
             out.println("    \"/api/register\": {");
             out.println("      \"post\": {");
-            out.println("        \"summary\": \"Đăng ký tài khoản mới\",");
-            out.println("        \"description\": \"Tạo mới user với vai trò mặc định là Driver\",");
+            out.println("        \"tags\": [\"Guest\"],");
+            out.println("        \"summary\": \"[Guest] Đăng ký tài khoản mới\",");
+            out.println("        \"description\": \"Tạo mới tài khoản người dùng (vai trò mặc định là Driver).\",");
             out.println("        \"requestBody\": {");
             out.println("          \"required\": true,");
             out.println("          \"content\": {");
@@ -97,8 +117,7 @@ public class SwaggerConfigServlet extends HttpServlet {
             out.println("                  \"phone\": { \"type\": \"string\" },");
             out.println("                  \"email\": { \"type\": \"string\" },");
             out.println("                  \"password\": { \"type\": \"string\" }");
-            out.println("                },");
-            out.println("                \"required\": [\"fullName\", \"phone\", \"email\", \"password\"]");
+            out.println("                }");
             out.println("              }");
             out.println("            }");
             out.println("          }");
@@ -111,11 +130,11 @@ public class SwaggerConfigServlet extends HttpServlet {
             out.println("      }");
             out.println("    },");
 
-            // ==== API Get Packages ====
+            // ==== [GUEST] Get Packages ====
             out.println("    \"/api/getpackages\": {");
             out.println("      \"get\": {");
-            out.println("        \"summary\": \"Lấy danh sách gói pin\",");
-            out.println("        \"description\": \"Trả về toàn bộ danh sách các gói pin khả dụng\",");
+            out.println("        \"tags\": [\"Guest\"],");
+            out.println("        \"summary\": \"[Guest] Lấy danh sách gói pin\",");
             out.println("        \"responses\": {");
             out.println("          \"200\": { \"description\": \"Danh sách gói pin\" },");
             out.println("          \"204\": { \"description\": \"Không có gói pin nào\" }");
@@ -123,11 +142,11 @@ public class SwaggerConfigServlet extends HttpServlet {
             out.println("      }");
             out.println("    },");
 
-            // ==== API Get Stations ====
+            // ==== [GUEST] Get Stations ====
             out.println("    \"/api/getstations\": {");
             out.println("      \"get\": {");
-            out.println("        \"summary\": \"Lấy danh sách trạm đổi pin\",");
-            out.println("        \"description\": \"Trả về toàn bộ danh sách các trạm khả dụng\",");
+            out.println("        \"tags\": [\"Guest\"],");
+            out.println("        \"summary\": \"[Guest] Lấy danh sách trạm đổi pin\",");
             out.println("        \"responses\": {");
             out.println("          \"200\": { \"description\": \"Danh sách trạm\" },");
             out.println("          \"204\": { \"description\": \"Không có trạm nào\" }");
@@ -135,11 +154,25 @@ public class SwaggerConfigServlet extends HttpServlet {
             out.println("      }");
             out.println("    },");
 
-            // ==== API Link Vehicle ====
+            // ==== [GUEST] Get Station Battery Report ====
+            out.println("    \"/api/getStationBatteryReportGuest\": {");
+            out.println("      \"get\": {");
+            out.println("        \"tags\": [\"Guest\"],");
+            out.println("        \"summary\": \"[Guest] Báo cáo tổng hợp pin tại các trạm\",");
+            out.println("        \"description\": \"Trả về danh sách báo cáo tổng hợp tình trạng pin tại tất cả các trạm.\",");
+            out.println("        \"responses\": {");
+            out.println("          \"200\": { \"description\": \"Danh sách báo cáo trạm\" },");
+            out.println("          \"500\": { \"description\": \"Lỗi xử lý nội bộ\" }");
+            out.println("        }");
+            out.println("      }");
+            out.println("    },");
+
+            // ==== [DRIVER] Link Vehicle ====
             out.println("    \"/api/linkVehicleController\": {");
             out.println("      \"post\": {");
-            out.println("        \"summary\": \"Liên kết xe với tài khoản người dùng\",");
-            out.println("        \"description\": \"Upload ảnh cà vẹt xe để hệ thống nhận dạng (OCR) và lưu thông tin xe vào DB.\",");
+            out.println("        \"tags\": [\"Driver\"],");
+            out.println("        \"summary\": \"[Driver] Liên kết xe với tài khoản\",");
+            out.println("        \"description\": \"Người dùng upload ảnh cà vẹt xe để hệ thống nhận dạng và lưu vào DB.\",");
             out.println("        \"requestBody\": {");
             out.println("          \"required\": true,");
             out.println("          \"content\": {");
@@ -147,11 +180,10 @@ public class SwaggerConfigServlet extends HttpServlet {
             out.println("              \"schema\": {");
             out.println("                \"type\": \"object\",");
             out.println("                \"properties\": {");
-            out.println("                  \"carDoc\": { \"type\": \"string\", \"format\": \"binary\", \"description\": \"Ảnh cà vẹt xe\" },");
+            out.println("                  \"carDoc\": { \"type\": \"string\", \"format\": \"binary\" },");
             out.println("                  \"model\": { \"type\": \"string\" },");
             out.println("                  \"batteryType\": { \"type\": \"string\" }");
-            out.println("                },");
-            out.println("                \"required\": [\"carDoc\"]");
+            out.println("                }");
             out.println("              }");
             out.println("            }");
             out.println("          }");
@@ -164,34 +196,17 @@ public class SwaggerConfigServlet extends HttpServlet {
             out.println("      }");
             out.println("    },");
 
-            // ==== API Payment (Tạo thanh toán VNPay) ====
-            out.println("    \"/api/payment\": {");
+            // ==== [STAFF] View Battery Slot Status ====
+            out.println("    \"/api/secure/viewBatterySlotStatus\": {");
             out.println("      \"get\": {");
-            out.println("        \"summary\": \"Tạo yêu cầu thanh toán VNPay\",");
-            out.println("        \"description\": \"API này tạo URL thanh toán VNPay cho người dùng để mua gói pin.\",");
-            out.println("        \"parameters\": [");
-            out.println("          { \"name\": \"userId\", \"in\": \"query\", \"required\": true, \"schema\": { \"type\": \"string\" }, \"description\": \"ID người dùng\" },");
-            out.println("          { \"name\": \"amount\", \"in\": \"query\", \"required\": true, \"schema\": { \"type\": \"string\" }, \"description\": \"Số tiền thanh toán\" },");
-            out.println("          { \"name\": \"orderType\", \"in\": \"query\", \"required\": true, \"schema\": { \"type\": \"string\" }, \"description\": \"Loại giao dịch, ví dụ: buyPackage\" },");
-            out.println("          { \"name\": \"packageId\", \"in\": \"query\", \"required\": true, \"schema\": { \"type\": \"string\" }, \"description\": \"ID gói pin cần mua\" }");
-            out.println("        ],");
+            out.println("        \"tags\": [\"Staff\"],");
+            out.println("        \"summary\": \"[Staff] Xem trạng thái pin trong các slot của trạm\",");
+            out.println("        \"description\": \"API cho phép nhân viên trạm xem danh sách các khe pin trong trạm của họ.\",");
             out.println("        \"responses\": {");
-            out.println("          \"302\": { \"description\": \"Chuyển hướng sang trang thanh toán VNPay\" },");
-            out.println("          \"400\": { \"description\": \"Dữ liệu không hợp lệ\" },");
-            out.println("          \"500\": { \"description\": \"Lỗi xử lý nội bộ\" }");
-            out.println("        }");
-            out.println("      }");
-            out.println("    },");
-
-            // ==== API Buy Package (Callback sau thanh toán) ====
-            out.println("    \"/api/buyPackage\": {");
-            out.println("      \"get\": {");
-            out.println("        \"summary\": \"Xử lý callback từ VNPay sau thanh toán\",");
-            out.println("        \"description\": \"API xử lý phản hồi từ VNPay, kiểm tra chữ ký, xác thực giao dịch và cập nhật gói pin cho người dùng.\",");
-            out.println("        \"responses\": {");
-            out.println("          \"200\": { \"description\": \"Thanh toán thành công và cập nhật gói pin\" },");
-            out.println("          \"400\": { \"description\": \"Chữ ký không hợp lệ hoặc mã lỗi VNPay\" },");
-            out.println("          \"500\": { \"description\": \"Lỗi xử lý nội bộ\" }");
+            out.println("          \"200\": { \"description\": \"Danh sách slot tại trạm\" },");
+            out.println("          \"401\": { \"description\": \"Thiếu token hoặc token không hợp lệ\" },");
+            out.println("          \"403\": { \"description\": \"Không có quyền truy cập (chỉ dành cho Staff)\" },");
+            out.println("          \"500\": { \"description\": \"Lỗi xử lý nội bộ server\" }");
             out.println("        }");
             out.println("      }");
             out.println("    }");
@@ -201,4 +216,3 @@ public class SwaggerConfigServlet extends HttpServlet {
         }
     }
 }
-

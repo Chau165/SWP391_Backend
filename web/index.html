@@ -20,14 +20,15 @@
     button:hover { filter: brightness(0.95); }
     button.ghost{background:transparent;color:var(--ink);border:1px solid #d1d5db}
     button.small{padding:6px 10px;font-size:13px;border-radius:999px;width:auto}
+    button.approve{background: var(--success)}
+    button.cancel{background: var(--danger)}
     pre { background: #f8f9fa; padding: 10px; border-radius: 8px; white-space: pre-wrap; overflow-x: auto; }
     .package-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
     .package-card { border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.06); }
     .package-card h3 { color: #2c3e50; margin-top: 0; }
     .price { color: #e74c3c; font-weight: bold; }
-    img.preview { width: 100%; max-height: 220px; object-fit: contain; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; }
     .table { width:100%; border-collapse: collapse; }
-    .table th, .table td { border:1px solid #e5e7eb; padding:8px; text-align:left; }
+    .table th, .table td { border:1px solid #e5e7eb; padding:8px; text-align:left; vertical-align: top; }
     .table th { background:#f1f5f9; }
     .badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:12px; background:#eef2ff; }
     .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
@@ -36,6 +37,8 @@
     .role-tabs{display:flex;gap:8px;justify-content:center;margin:12px 0}
     .role-tabs .pill{padding:6px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;font-size:12px}
     .hide{display:none !important}
+    .stack{display:flex;flex-direction:column;gap:6px}
+    img.preview { max-width:100%; border:1px solid #e5e7eb; border-radius:8px; display:none }
   </style>
 </head>
 <body>
@@ -70,6 +73,36 @@
 
 <!-- ===================== DRIVER / GUEST AREA ===================== -->
 <div id="areaDriverGuest">
+  <!-- 📎 Liên kết xe (Driver) -->
+  <div class="card" id="linkVehicleCard">
+    <h2>📎 Liên kết xe (Driver)</h2>
+    <div class="row" style="margin-bottom:6px">
+      <span class="hint">
+        Chỉ Driver sử dụng. BE yêu cầu <code class="code">multipart/form-data</code> với key <code class="code">carDoc</code>.
+        Model hỗ trợ: Gogoro SuperSport, 2 Delight, Viva Mix, CrossOver S, S2 ABS.
+      </span>
+    </div>
+
+    <div class="grid">
+      <div class="col-6">
+        <label>Ảnh cà vẹt xe (JPEG/PNG, ≤ 5MB)</label>
+        <input id="carDocInput" type="file" accept="image/*" />
+        <div class="hint">Form key: <code class="code">carDoc</code></div>
+      </div>
+      <div class="col-6">
+        <label>Xem trước</label>
+        <img id="carDocPreview" class="preview" alt="Preview" />
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:8px">
+      <button id="btnLinkVehicle">Tải lên & Liên kết xe</button>
+      <button class="ghost" id="btnClearVehicle">Xoá ảnh</button>
+    </div>
+
+    <pre id="linkVehicleResult" class="code" style="margin-top:8px"></pre>
+  </div>
+
   <!-- ⚡ Packages -->
   <div class="card">
     <h2>⚡ Các gói pin</h2>
@@ -119,6 +152,9 @@
 <div id="areaManager" class="hide">
   <div class="card">
     <h2>🗂️ Yêu cầu điều phối pin (Manager)</h2>
+    <div class="hint" style="margin:-4px 0 8px">
+      • Tạo request mới cho trạm của bạn. Sau khi Admin <strong>Approve</strong>, trạng thái sẽ là <span class="badge">Preparing</span>. Khi hàng đã giao tới trạm, bạn bấm <strong>Confirm đã nhận</strong> để hoàn tất (status → <span class="badge">Complete</span>).
+    </div>
     <div class="grid">
       <div class="col-6">
         <label>Tên trạm (stationName)</label>
@@ -143,13 +179,16 @@
     </div>
     <div class="row">
       <button id="btnMgrSend">Gửi request</button>
-      <button class="ghost" id="btnMgrReload">Tải request pending</button>
+      <button class="ghost" id="btnMgrReload">Tải request của tôi</button>
     </div>
     <pre id="mgrResult"></pre>
   </div>
 
   <div class="card">
-    <h2>📥 Request đang chờ (của trạm của tôi)</h2>
+    <h2>📥 Request của trạm tôi</h2>
+    <div class="hint" style="margin:-4px 0 8px">
+      • Khi trạng thái là <span class="badge">Preparing</span>, hãy bấm <strong>Confirm đã nhận</strong> để chốt điều phối & cập nhật kho.
+    </div>
     <div id="mgrPending"><em>Chưa tải dữ liệu...</em></div>
   </div>
 </div>
@@ -160,14 +199,48 @@
     <h2>🛡️ Duyệt yêu cầu điều phối (Admin)</h2>
     <div class="row" style="margin-bottom:8px">
       <button id="btnAdminReload">Tải request pending</button>
+      <span class="hint">Chọn trạm phản hồi (stationRespondName) rồi Approve (status → <span class="badge">Preparing</span>), hoặc Cancel để huỷ yêu cầu.</span>
     </div>
     <div id="adminPending"><em>Chưa tải dữ liệu...</em></div>
   </div>
 </div>
 
+<!-- 📊 Tổng hợp pin theo trạm (Admin) -->
+<div class="card">
+  <h2>📊 Thống kê số lượng pin theo trạm</h2>
+  <div class="row" style="margin-bottom:8px">
+    <button id="btnAdminSummaryReload">Tải lại thống kê</button>
+    <span class="hint">Tách theo loại pin (Li-ion/LFP) và nhóm SoH (Good/Average/Weak/Below75).</span>
+  </div>
+  <div id="adminStationSummary"><em>Chưa tải dữ liệu...</em></div>
+</div>
+
+<!-- 🤖 AI Suggest -->
+<div class="card">
+  <h2>⚡ AI Gợi ý trạm lấy pin</h2>
+  <label>Loại pin:</label>
+  <select id="aiBatteryType">
+    <option value="Li-ion">Li-ion</option>
+    <option value="LFP">LFP</option>
+  </select>
+
+  <label>Số trạm cần đề xuất:</label>
+  <input type="number" id="topN" value="3" min="1" max="10" />
+
+  <button id="btnAISuggest">Gọi AI gợi ý</button>
+
+  <h3>Kết quả:</h3>
+  <pre id="result">Chưa có dữ liệu</pre>
+</div>
+
 <script>
+/** ==============================
+ *  CẤU HÌNH & TRẠNG THÁI TOÀN CỤC
+ *  ============================== */
 const BASE_URL = window.location.origin + "/webAPI";
-let currentUser = JSON.parse(localStorage.getItem("userInfo")) || null;
+
+// ❗ KHÔNG DÙNG localStorage nữa → chỉ giữ trong bộ nhớ
+let currentUser = null;
 
 // ===== Helpers =====
 const $ = (id)=>document.getElementById(id);
@@ -175,12 +248,39 @@ const setText = (id, text)=>{ const el=$(id); if(el) el.textContent = text; };
 const show = (id, yes)=>{ const el=$(id); if(!el) return; el.classList.toggle('hide', !yes); };
 const authHeader = ()=> currentUser?.token ? {"Authorization": "Bearer "+currentUser.token} : {};
 
+const stationsCache = { list: [], loaded: false };
+
+async function ensureStations(){
+  if(stationsCache.loaded && stationsCache.list.length) return stationsCache.list;
+  try{
+    const res = await fetch(`${BASE_URL}/api/getstations`);
+    const data = await res.json();
+    const rows = (data?.data)||[];
+    stationsCache.list = rows.map(r=>({ id: r.Station_ID, name: r.Name }));
+    stationsCache.loaded = true;
+    return stationsCache.list;
+  }catch(_){
+    stationsCache.list = [];
+    stationsCache.loaded = true;
+    return [];
+  }
+}
+
+function buildStationSelectHtml(requestId){
+  const opts = stationsCache.list.map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
+  return `<select class="admin-station" id="respondStation-${requestId}">
+            <option value="">-- Chọn trạm phản hồi --</option>
+            ${opts}
+          </select>`;
+}
+
 function whoami(){
   const info = currentUser ? {
     id: currentUser.id,
     fullName: currentUser.fullName,
     role: currentUser.role,
-    tokenPreview: currentUser.token?.slice(0,20)+"…" } : 'Chưa đăng nhập.';
+    tokenPreview: currentUser.token?.slice(0,20)+"…"
+  } : 'Chưa đăng nhập.';
   $("whoami").textContent = typeof info==='string'? info : JSON.stringify(info, null, 2);
   $("pillRoleText").textContent = currentUser?.role || 'Guest';
 }
@@ -191,12 +291,14 @@ function routeByRole(){
   const isAdmin   = role === 'admin';
   const isDriver  = role === 'driver';
 
-  // Only one area visible at a time
-  show('areaDriverGuest', !(isManager||isAdmin)); // hide for Manager/Admin
+  show('areaDriverGuest', !(isManager||isAdmin));
   show('areaManager', isManager);
   show('areaAdmin', isAdmin);
 
-  // Load role-specific data
+  // Ẩn/hiện card Liên kết xe theo vai trò
+  const linkCard = $("linkVehicleCard");
+  linkCard?.classList.toggle("hide", !isDriver);
+
   if(isDriver){
     loadPackages();
     loadBookingOptions();
@@ -205,13 +307,15 @@ function routeByRole(){
     loadMgrPending();
   } else if(isAdmin){
     loadAdminPending();
+    loadAdminStationSummary(); // thống kê pin theo trạm
   } else {
-    // Guest
     loadPackages();
   }
 }
 
-// =================== AUTH ===================
+/** ===================
+ *  AUTH (KHÔNG LƯU LS)
+ *  =================== */
 $("btnLogin").addEventListener("click", async ()=>{
   const email = $("loginEmail").value.trim();
   const password = $("loginPassword").value.trim();
@@ -227,7 +331,6 @@ $("btnLogin").addEventListener("click", async ()=>{
     const data = await res.json();
     if(data.status==="success"){
       currentUser = { id:data.user.id, fullName:data.user.fullName, role:data.user.role, token:data.token };
-      localStorage.setItem("userInfo", JSON.stringify(currentUser));
       resBox.textContent = `✅ Đăng nhập thành công!\nUser: ${currentUser.fullName}\nRole: ${currentUser.role}`;
       whoami();
       routeByRole();
@@ -238,19 +341,20 @@ $("btnLogin").addEventListener("click", async ()=>{
 });
 
 $("btnLogout").addEventListener("click", ()=>{
-  localStorage.removeItem("userInfo");
-  currentUser = null;
+  currentUser = null; // ❗ clear in-memory
   alert("✅ Bạn đã đăng xuất!");
   whoami();
   routeByRole();
 });
 
-// Demo pills to quickly view role-specific UI (for local testing only)
-$("btnSwitchToDriver").onclick=()=>{ currentUser={id:1,fullName:'Tester',role:'Driver',token:currentUser?.token||''}; localStorage.setItem('userInfo',JSON.stringify(currentUser)); whoami(); routeByRole(); };
-$("btnSwitchToManager").onclick=()=>{ currentUser={id:2,fullName:'Manager Demo',role:'Manager',token:currentUser?.token||''}; localStorage.setItem('userInfo',JSON.stringify(currentUser)); whoami(); routeByRole(); };
-$("btnSwitchToAdmin").onclick=()=>{ currentUser={id:3,fullName:'Admin Demo',role:'Admin',token:currentUser?.token||''}; localStorage.setItem('userInfo',JSON.stringify(currentUser)); whoami(); routeByRole(); };
+// Demo pills (local testing only) — KHÔNG dùng localStorage
+$("btnSwitchToDriver").onclick=()=>{ currentUser={id:1,fullName:'Tester',role:'Driver',token:currentUser?.token||''}; whoami(); routeByRole(); };
+$("btnSwitchToManager").onclick=()=>{ currentUser={id:2,fullName:'Manager Demo',role:'Manager',token:currentUser?.token||''}; whoami(); routeByRole(); };
+$("btnSwitchToAdmin").onclick=()=>{ currentUser={id:3,fullName:'Admin Demo',role:'Admin',token:currentUser?.token||''}; whoami(); routeByRole(); };
 
-// ============ DRIVER / GUEST FEATURES ============
+/** ============================
+ *  DRIVER / GUEST FEATURES
+ *  ============================ */
 async function loadPackages(){
   const container = $("packageContainer"); if(!container) return;
   try{
@@ -261,9 +365,10 @@ async function loadPackages(){
     data.forEach(pkg=>{
       const div = document.createElement("div");
       div.className="package-card";
-      div.innerHTML=`<h3>${pkg.name}</h3>
-                     <p>${pkg.description||''}</p>
-                     <p class="price">${Number(pkg.price).toLocaleString("vi-VN")} VNĐ / tháng</p>`;
+      div.innerHTML=`
+        <h3>${pkg.name}</h3>
+        <p>${pkg.description||''}</p>
+        <p class="price">${Number(pkg.price).toLocaleString("vi-VN")} VNĐ / tháng</p>`;
       if(currentUser && currentUser.role?.toLowerCase()==="driver"){
         const btn = document.createElement("button");
         btn.textContent="Mua ngay";
@@ -327,10 +432,10 @@ async function loadBookings(){
     const res = await fetch(`${BASE_URL}/api/secure/getBookings`, { headers: { ...authHeader() } });
     const text = await res.text();
     if (!text || !text.trim()) { container.innerHTML = `<span style="color:#c00">❌ Empty response (HTTP ${res.status})</span>`; return; }
-    let data; try { data = JSON.parse(text); } catch (e) { container.innerHTML = `<span style=\"color:#c00\">❌ Non-JSON: ${text.slice(0,200)}</span>`; return; }
-    if (!res.ok) { container.innerHTML = `<span style=\"color:#c00\">❌ ${data.error || 'Lỗi tải danh sách'}</span>`; return; }
+    let data; try { data = JSON.parse(text); } catch (e) { container.innerHTML = `<span style="color:#c00">❌ Non-JSON: ${text.slice(0,200)}</span>`; return; }
+    if (!res.ok) { container.innerHTML = `<span style="color:#c00">❌ ${data.error || 'Lỗi tải danh sách'}</span>`; return; }
     renderBookings(container, Array.isArray(data) ? data : []);
-  } catch (err) { container.innerHTML = `<span style=\"color:#c00\">❌ ${err}</span>`; }
+  } catch (err) { container.innerHTML = `<span style="color:#c00">❌ ${err}</span>`; }
 }
 
 function renderBookings(container, items){
@@ -380,25 +485,81 @@ function renderBookings(container, items){
     </div>`;
 }
 
-function fmtTime(s){ try { if (s.includes('T')) { const d=new Date(s); if(!isNaN(d.getTime())) return d.toLocaleString('vi-VN'); } const s2=s.replace(' ','T'); const d2=new Date(s2); if(!isNaN(d2.getTime())) return d2.toLocaleString('vi-VN'); } catch(_) {} return s; }
-
-// Check-in / Swap
-$("btnCheckin").addEventListener("click", async () => {
-  const bookingId = $("checkinBookingId").value.trim();
-  const resBox = $("checkinResult");
-  if (!bookingId) { resBox.textContent = "⚠️ Nhập Booking ID"; return; }
-  if (!currentUser || !currentUser.token) { alert("⚠️ Cần đăng nhập"); return; }
-  resBox.textContent = "⏳ Đang xử lý...";
+function fmtTime(s){
   try {
-    const formData = new URLSearchParams(); formData.append("bookingId", bookingId);
-    const res = await fetch(`${BASE_URL}/api/checkin`, { method: "POST", headers: { ...authHeader(), "Content-Type": "application/x-www-form-urlencoded" }, body: formData.toString() });
-    const data = await res.json();
-    if (data.error) { resBox.textContent = "❌ " + data.error; }
-    else { resBox.textContent = "✅ Swap thành công:\n" + JSON.stringify(data, null, 2); loadBookings(); }
-  } catch (err) { resBox.textContent = "❌ Lỗi: " + err; }
+    if (s.includes('T')) { const d=new Date(s); if(!isNaN(d.getTime())) return d.toLocaleString('vi-VN'); }
+    const s2=s.replace(' ','T'); const d2=new Date(s2); if(!isNaN(d2.getTime())) return d2.toLocaleString('vi-VN');
+  } catch(_) {}
+  return s;
+}
+
+/** ======================
+ *  LINK VEHICLE (Driver)
+ *  ====================== */
+const carDocInput    = $("carDocInput");
+const carDocPreview  = $("carDocPreview");
+const linkVehicleRes = $("linkVehicleResult");
+
+carDocInput?.addEventListener("change", () => {
+  const f = carDocInput.files?.[0];
+  if (!f) { carDocPreview.style.display = "none"; carDocPreview.src = ""; return; }
+  const url = URL.createObjectURL(f);
+  carDocPreview.src = url;
+  carDocPreview.style.display = "block";
 });
 
-// ============ MANAGER FEATURES ============
+$("btnClearVehicle")?.addEventListener("click", () => {
+  if (carDocInput) carDocInput.value = "";
+  if (carDocPreview) { carDocPreview.src = ""; carDocPreview.style.display = "none"; }
+  if (linkVehicleRes) linkVehicleRes.textContent = "";
+});
+
+$("btnLinkVehicle")?.addEventListener("click", async () => {
+  if (!currentUser || !currentUser.token) { alert("⚠️ Cần đăng nhập với vai trò Driver."); return; }
+  if ((currentUser.role || "").toLowerCase() !== "driver") { alert("⚠️ Chỉ Driver mới được liên kết xe."); return; }
+
+  const file = carDocInput?.files?.[0];
+  if (!file) { linkVehicleRes.textContent = "⚠️ Vui lòng chọn ảnh cà vẹt xe."; return; }
+  if (file.size > 5 * 1024 * 1024) { linkVehicleRes.textContent = "⚠️ Ảnh vượt quá 5MB."; return; }
+
+  linkVehicleRes.textContent = "⏳ Đang tải lên và xử lý OCR...";
+
+  try {
+    const fd = new FormData();
+    fd.append("carDoc", file);
+
+    const res = await fetch(`${BASE_URL}/api/secure/linkVehicle`, {
+      method: "POST",
+      headers: { ...authHeader() },
+      body: fd
+    });
+
+    const text = await res.text();
+    let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+
+    if (!res.ok || data.status === "error") {
+      const msg = (data && (data.message || data.error)) || `HTTP ${res.status}`;
+      linkVehicleRes.textContent = "❌ " + msg + (data.debug ? ("\n\nDebug:\n" + JSON.stringify(data.debug, null, 2)) : "");
+      return;
+    }
+
+    const show = {
+      status: data.status,
+      message: data.message,
+      detectedModel: data.detectedModel,
+      ownerFromOCR: data.owner,
+      savedVehicle: data.data || null
+    };
+    linkVehicleRes.textContent = "✅ Thành công:\n" + JSON.stringify(show, null, 2);
+
+  } catch (err) {
+    linkVehicleRes.textContent = "❌ " + err;
+  }
+});
+
+/** ======================
+ *  MANAGER FEATURES
+ *  ====================== */
 $("btnMgrSend").addEventListener('click', async ()=>{
   if(!currentUser?.token) { alert('⚠️ Cần đăng nhập'); return; }
   const stationName = $("mgrStationName").value.trim();
@@ -425,76 +586,325 @@ $("btnMgrSend").addEventListener('click', async ()=>{
 $("btnMgrReload").addEventListener('click', loadMgrPending);
 
 async function loadMgrPending(){
-  const box = $("mgrPending"); box.innerHTML = '<em>Đang tải...</em>';
+  const box = $("mgrPending");
+  box.innerHTML = '<em>Đang tải...</em>';
   try{
     const res = await fetch(`${BASE_URL}/api/secure/dispatchPending`, { headers:{ ...authHeader() } });
-    const data = await res.json();
-    if(!res.ok){ box.innerHTML = `<span style=\"color:#c00\">❌ ${(data&&data.message)||'Lỗi tải'}</span>`; return; }
-    renderDispatchTable(box, data, { showApprove:false });
-  }catch(err){ box.innerHTML = `<span style=\"color:#c00\">❌ ${err}</span>`; }
+    const text = await res.text();
+
+    if (!text || !text.trim()) { box.innerHTML = `<span style="color:#c00">❌ Empty response (HTTP ${res.status})</span>`; return; }
+
+    let data;
+    try { data = JSON.parse(text); }
+    catch { box.innerHTML = `<span style="color:#c00">❌ Non-JSON: ${text.slice(0,200)}</span>`; return; }
+
+    if(!res.ok){ box.innerHTML = `<span style="color:#c00">❌ ${(data && (data.message || data.error)) || 'Lỗi tải'}</span>`; return; }
+
+    // 👇 Cho phép Manager xác nhận khi status = Preparing
+    renderDispatchTable(box, Array.isArray(data) ? data : [], { showAdminActions:false, showManagerConfirm:true });
+  }catch(err){
+    box.innerHTML = `<span style="color:#c00">❌ ${err}</span>`;
+  }
 }
 
-// ============ ADMIN FEATURES ============
+function wireManagerConfirmButtons(){
+  const container = $("mgrPending");
+  container.querySelectorAll('button[data-action="confirm-received"]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const dispatchId = btn.getAttribute('data-id');
+      await managerConfirmReceived(dispatchId);
+    });
+  });
+}
+
+async function managerConfirmReceived(dispatchId){
+  if(!currentUser?.token) { alert('⚠️ Cần đăng nhập'); return; }
+  if(!dispatchId){ return; }
+
+  if(!confirm(`Xác nhận đã nhận pin cho request #${dispatchId}?`)) return;
+
+  try{
+    // ✅ Backend yêu cầu role Manager và xác thực trạm Request
+    const form = new URLSearchParams();
+    form.append('dispatchId', String(dispatchId));
+
+    const res = await fetch(`${BASE_URL}/api/secure/dispatchConfirm`, {
+      method:'POST',
+      headers:{ ...authHeader(), 'Content-Type':'application/x-www-form-urlencoded' },
+      body: form.toString()
+    });
+
+    const text = await res.text();
+    let data; try{ data = JSON.parse(text); } catch { data = { raw:text }; }
+
+    if(res.ok && data.success){
+      alert('✅ Đã xác nhận nhận pin & hoàn tất điều phối!');
+      loadMgrPending();
+    }else{
+      alert('❌ ' + (data.message || text));
+    }
+  }catch(err){
+    alert('❌ ' + err);
+  }
+}
+
+/** ======================
+ *  ADMIN FEATURES
+ *  ====================== */
 $("btnAdminReload").addEventListener('click', loadAdminPending);
+$("btnAdminSummaryReload").addEventListener('click', loadAdminStationSummary);
 
 async function loadAdminPending(){
   const box = $("adminPending"); box.innerHTML = '<em>Đang tải...</em>';
+  await ensureStations();
   try{
     const res = await fetch(`${BASE_URL}/api/secure/admindispatchPending`, { headers:{ ...authHeader() } });
     const data = await res.json();
-    if(!res.ok){ box.innerHTML = `<span style=\"color:#c00\">❌ ${(data&&data.message)||'Lỗi tải'}</span>`; return; }
-    renderDispatchTable(box, data, { showApprove:true });
-  }catch(err){ box.innerHTML = `<span style=\"color:#c00\">❌ ${err}</span>`; }
+    if(!res.ok){ box.innerHTML = `<span style="color:#c00">❌ ${(data&&data.message)||'Lỗi tải'}</span>`; return; }
+    renderDispatchTable(box, data, { showAdminActions:true });
+    // wireAdminActionButtons() sẽ được gọi ngay trong renderDispatchTable
+  }catch(err){ box.innerHTML = `<span style="color:#c00">❌ ${err}</span>`; }
 }
 
 function renderDispatchTable(container, items, opts){
-  if(!Array.isArray(items) || !items.length){ container.innerHTML = '<em>Không có request nào.</em>'; return; }
+  // opts:
+  //   - showAdminActions: boolean
+  //   - showManagerConfirm: boolean
+  if(!Array.isArray(items) || !items.length){
+    container.innerHTML = '<em>Không có request nào.</em>';
+    return;
+  }
+  const actionTh = (opts.showAdminActions || opts.showManagerConfirm) ? '<th>Thao tác</th>' : '';
+
   const rows = items.map((it)=>{
-    const approveBtn = opts.showApprove ? `<button class="small" data-approve="${it.requestId}">Duyệt</button>` : '';
+    const requestId     = it.requestId ?? it.dispatchId ?? '';
+    const reqName       = it.stationRequestName ?? it.stationRequest ?? it.stationRequest_Name ?? '-';
+    const resName       = it.stationRespondName ?? it.stationRespond ?? it.stationRespond_Name ?? '-';
+    const batteryName   = it.batteryName ?? it.battery ?? it.batteryType ?? '-';
+    const qtyGood       = it.qtyGood ?? it.quantityGood ?? it.Quantity_Type_Good ?? 0;
+    const qtyAverage    = it.qtyAverage ?? it.quantityAverage ?? it.Quantity_Type_Average ?? 0;
+    const qtyBad        = it.qtyBad ?? it.quantityBad ?? it.Quantity_Type_Bad ?? 0;
+    const status        = (it.status ?? '').toString();
+    const reqTime       = it.requestTime ? fmtTime(it.requestTime) : (it.Request_Time ? fmtTime(it.Request_Time) : '-');
+    const resTime       = it.respondTime ? fmtTime(it.respondTime) : (it.Respond_Time ? fmtTime(it.Respond_Time) : '-');
+
+    // ⚠️ Cờ từ BE cho Manager để biết mình là Request hay Respond
+    const isMyReq = it.isMyStationRequest === true || it.isMyStationRequest === 1 || it.isMyStationRequest === 'true';
+    // const isMyRes = it.isMyStationRespond === true || it.isMyStationRespond === 1 || it.isMyStationRespond === 'true';
+
+    // Manager: chỉ hiện Confirm khi là trạm Request & đang Preparing
+    const managerButtons = (opts.showManagerConfirm && isMyReq && status.toLowerCase()==='preparing')
+      ? `<div class="stack">
+           <button class="small approve" data-action="confirm-received" data-id="${requestId}">
+             Confirm đã nhận
+           </button>
+         </div>`
+      : '';
+
+    // Admin: Approve/Cancel (Approve → Preparing)
+    const adminButtons = opts.showAdminActions
+      ? `<div class="stack">
+           ${buildStationSelectHtml(requestId)}
+           <div class="row">
+             <button class="small approve" data-action="approve" data-id="${requestId}">Approve</button>
+             <button class="small cancel"  data-action="cancel"  data-id="${requestId}">Cancel</button>
+           </div>
+         </div>`
+      : '';
+
+    const actionCells = (opts.showAdminActions || opts.showManagerConfirm)
+      ? `<td>${adminButtons || managerButtons || ''}</td>`
+      : '';
+
     return `<tr>
-      <td class="code">${it.requestId}</td>
-      <td>${it.stationRequestName||'-'}</td>
-      <td>${it.batteryName||'-'}</td>
-      <td class="code">${it.qtyGood}</td>
-      <td class="code">${it.qtyAverage}</td>
-      <td class="code">${it.qtyBad}</td>
-      <td><span class="badge">${it.status}</span></td>
-      <td class="code">${it.requestTime||''}</td>
-      <td>${approveBtn}</td>
+      <td class="code">${requestId}</td>
+      <td>${reqName}</td>
+      <td>${resName}</td>
+      <td>${batteryName}</td>
+      <td class="code">${qtyGood}</td>
+      <td class="code">${qtyAverage}</td>
+      <td class="code">${qtyBad}</td>
+      <td><span class="badge">${status}</span></td>
+      <td class="code">${reqTime}</td>
+      <td class="code">${resTime}</td>
+      ${actionCells}
     </tr>`;
   }).join('');
+
   container.innerHTML = `
     <div style="overflow:auto">
       <table class="table">
         <thead>
           <tr>
-            <th>#</th><th>Trạm yêu cầu</th><th>Loại pin</th>
+            <th>#</th>
+            <th>Trạm yêu cầu</th>
+            <th>Trạm phản hồi</th>
+            <th>Loại pin</th>
             <th>Good</th><th>Average</th><th>Bad</th>
-            <th>Trạng thái</th><th>Thời gian yêu cầu</th><th>Thao tác</th>
+            <th>Trạng thái</th>
+            <th>Thời gian yêu cầu</th>
+            <th>Thời gian phản hồi</th>
+            ${actionTh}
           </tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
-  if(opts.showApprove){
-    container.querySelectorAll('button[data-approve]').forEach(btn=>{
-      btn.addEventListener('click', ()=> approveRequest(btn.getAttribute('data-approve')));
+
+  if(opts.showAdminActions)   wireAdminActionButtons();
+  if(opts.showManagerConfirm) wireManagerConfirmButtons();
+}
+
+function wireAdminActionButtons(){
+  const container = $("adminPending");
+  container.querySelectorAll('button[data-action]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const requestId = btn.getAttribute('data-id');
+      const action = btn.getAttribute('data-action'); // approve | cancel
+      await approveOrCancelRequest(requestId, action);
     });
+  });
+}
+
+async function approveOrCancelRequest(requestId, action){
+  if(!currentUser?.token) { alert('⚠️ Cần đăng nhập'); return; }
+  if(!requestId || !action) return;
+
+  let stationRespondName = '';
+  if(action === 'approve'){
+    const sel = document.getElementById(`respondStation-${requestId}`);
+    stationRespondName = sel?.value?.trim() || '';
+    if(!stationRespondName){
+      alert('⚠️ Vui lòng chọn trạm phản hồi trước khi Approve.');
+      return;
+    }
+  }
+
+  if(!confirm(`${action==='approve'?'Duyệt':'Hủy'} request #${requestId}?`)) return;
+
+  try{
+    const form = new URLSearchParams();
+    form.append('requestId', String(requestId));
+    form.append('action', action);
+    if(action==='approve') form.append('stationRespondName', stationRespondName);
+
+    const res = await fetch(`${BASE_URL}/api/secure/dispatchApprove`, {
+      method:'POST',
+      headers:{ ...authHeader(), 'Content-Type':'application/x-www-form-urlencoded' },
+      body: form.toString()
+    });
+    const data = await res.json();
+
+    if(res.ok && data.success){
+      alert(`✅ ${action==='approve'?'Set PREPARING':'Cancelled'}!`);
+      loadAdminPending();
+    }else{
+      alert('❌ ' + (data.message || 'Thao tác thất bại'));
+    }
+  }catch(err){
+    alert('❌ ' + err);
   }
 }
 
-async function approveRequest(requestId){
-  if(!confirm(`Duyệt request #${requestId}?`)) return;
+/** ==============================
+ *  🤖 AI Suggest
+ *  ============================== */
+$("btnAISuggest").addEventListener("click", callAISuggestion);
+
+async function callAISuggestion() {
+  const batteryType = $("aiBatteryType").value;
+  const topN = parseInt($("topN").value);
+  const token = currentUser?.token || "";
+
   try{
-    const form = new URLSearchParams(); form.append('requestId', String(requestId));
-    const res = await fetch(`${BASE_URL}/api/secure/dispatchApprove`, { method:'POST', headers:{ ...authHeader(), 'Content-Type':'application/x-www-form-urlencoded' }, body: form.toString() });
-    const data = await res.json();
-    if(res.ok && data.success){ alert('✅ Đã duyệt!'); loadAdminPending(); }
-    else { alert('❌ '+ (data.message||'Approve failed')); }
-  }catch(err){ alert('❌ '+err); }
+    const res = await fetch(`${BASE_URL}/api/secure/suggestStation`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeader()
+      },
+      body: JSON.stringify({ batteryType, topN })
+    });
+    const text = await res.text();
+    $("result").textContent = text || "(empty)";
+  }catch(err){
+    $("result").textContent = "❌ " + err;
+  }
 }
 
-// ===== Boot =====
+/** ==============================
+ *  📊 ADMIN — THỐNG KÊ PIN THEO TRẠM
+ *  ============================== */
+$("btnAdminSummaryReload").addEventListener("click", loadAdminStationSummary);
+
+async function loadAdminStationSummary() {
+  const box = $("adminStationSummary");
+  box.innerHTML = "<em>Đang tải dữ liệu...</em>";
+
+  if (!currentUser || !currentUser.token) {
+    box.innerHTML = "<span style='color:#c00'>⚠️ Cần đăng nhập bằng tài khoản Admin!</span>";
+    return;
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/secure/getStationBatteryReport`, { headers: { ...authHeader() } });
+    const text = await res.text();
+    if (!text.trim()) {
+      box.innerHTML = `<span style="color:#c00">❌ Empty response (HTTP ${res.status})</span>`;
+      return;
+    }
+
+    let data;
+    try { data = JSON.parse(text); } 
+    catch { box.innerHTML = `<span style="color:#c00">❌ Invalid JSON: ${text.slice(0,200)}</span>`; return; }
+
+    if (data.status !== "success") {
+      box.innerHTML = `<span style="color:#c00">⚠️ ${data.message || "Không có dữ liệu"}</span>`;
+      return;
+    }
+
+    const rows = data.data;
+    if (!rows.length) {
+      box.innerHTML = "<em>Không có dữ liệu thống kê.</em>";
+      return;
+    }
+
+    const html = `
+      <div style="overflow:auto">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Trạm</th>
+              <th>Loại pin</th>
+              <th>Good</th>
+              <th>Average</th>
+              <th>Weak</th>
+              <th>Below75</th>
+              <th>Tổng</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td>${r.stationName || r.StationName || '-'}</td>
+                <td>${r.batteryType || r.BatteryType || '-'}</td>
+                <td>${r.Good ?? 0}</td>
+                <td>${r.Average ?? 0}</td>
+                <td>${r.Weak ?? 0}</td>
+                <td>${r.Below75 ?? 0}</td>
+                <td>${r.Total ?? 0}</td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`;
+    box.innerHTML = html;
+
+  } catch (err) {
+    box.innerHTML = `<span style="color:#c00">❌ ${err}</span>`;
+  }
+}
+
+/** ===== Boot ===== */
 whoami();
 routeByRole();
 </script>

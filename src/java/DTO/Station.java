@@ -1,17 +1,15 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package DTO;
 
 /**
- *
- * @author Surface
+ * DTO đại diện cho trạm đổi pin
+ * Bổ sung tọa độ để hiển thị trên Mapbox
  */
 public class Station {
-    public int Station_ID;
-    public String Name;
-    public String Address;
+    private int Station_ID;
+    private String Name;
+    private String Address;
+    private Double Latitude;   // vĩ độ
+    private Double Longitude;  // kinh độ
 
     public Station() {
     }
@@ -20,6 +18,14 @@ public class Station {
         this.Station_ID = Station_ID;
         this.Name = Name;
         this.Address = Address;
+    }
+
+    public Station(int Station_ID, String Name, String Address, Double Latitude, Double Longitude) {
+        this.Station_ID = Station_ID;
+        this.Name = Name;
+        this.Address = Address;
+        this.Latitude = Latitude;
+        this.Longitude = Longitude;
     }
 
     public int getStation_ID() {
@@ -44,6 +50,32 @@ public class Station {
 
     public void setAddress(String Address) {
         this.Address = Address;
-    }    
-    
+    }
+
+    public Double getLatitude() {
+        return Latitude;
+    }
+
+    public void setLatitude(Double Latitude) {
+        this.Latitude = Latitude;
+    }
+
+    public Double getLongitude() {
+        return Longitude;
+    }
+
+    public void setLongitude(Double Longitude) {
+        this.Longitude = Longitude;
+    }
+
+    @Override
+    public String toString() {
+        return "Station{" +
+                "Station_ID=" + Station_ID +
+                ", Name='" + Name + '\'' +
+                ", Address='" + Address + '\'' +
+                ", Latitude=" + Latitude +
+                ", Longitude=" + Longitude +
+                '}';
+    }
 }
