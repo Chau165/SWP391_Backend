@@ -1,6 +1,7 @@
 package controller;
 
 import DAO.UsersDAO;
+import DAO.UserProfileDAO;
 import DTO.Users;
 import com.google.gson.Gson;
 
@@ -19,6 +20,7 @@ import java.io.PrintWriter;
 public class loginController extends HttpServlet {
 
     private final UsersDAO usersDAO = new UsersDAO();
+    private final UserProfileDAO profileDAO = new UserProfileDAO();
     private final Gson gson = new Gson();
 
     @Override
@@ -68,6 +70,16 @@ public class loginController extends HttpServlet {
                 System.out.println("User Role: " + user.getRole());
                 System.out.println("Role length: " + (user.getRole() != null ? user.getRole().length() : "null"));
                 System.out.println("=====================");
+                
+                // Tạo hoặc cập nhật profile cho user
+                profileDAO.createOrUpdateProfile(
+                    user.getId(), 
+                    user.getFullName(), 
+                    user.getEmail(), 
+                    user.getPhone(), 
+                    user.getRole()
+                );
+                System.out.println("[DEBUG loginController] Profile created/updated for userId=" + user.getId());
                 
                 HttpSession session = request.getSession();
                 session.setAttribute("User", user);

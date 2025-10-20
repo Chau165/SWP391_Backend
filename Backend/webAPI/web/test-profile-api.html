@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test User Profile API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 36px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 24px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .response {
+            background: #f5f7fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .response.success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+
+        .response.error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+        }
+
+        .info {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info strong {
+            color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test User Profile API</h1>
+
+        <div class="info">
+            <strong>📌 Lưu ý:</strong> Đảm bảo backend đang chạy tại <code>http://localhost:8080/webAPI3/</code>
+            <br><strong>📊 Database:</strong> Bảng <code>User_Profiles</code> đã được tạo và có dữ liệu
+        </div>
+
+        <div class="grid">
+            <!-- GET Profile -->
+            <div class="card">
+                <h2>📥 GET Profile</h2>
+                <div class="form-group">
+                    <label for="getUserId">User ID:</label>
+                    <input type="number" id="getUserId" placeholder="Nhập User ID (ví dụ: 6)" value="6">
+                </div>
+                <button onclick="getProfile()">🔍 Lấy Profile</button>
+                <div id="getResponse" class="response" style="display:none;"></div>
+            </div>
+
+            <!-- POST Update Profile -->
+            <div class="card">
+                <h2>✏️ POST Update Profile</h2>
+                <div class="form-group">
+                    <label for="updateUserId">User ID:</label>
+                    <input type="number" id="updateUserId" placeholder="User ID" value="6">
+                </div>
+                <div class="form-group">
+                    <label for="updateFullName">Họ và Tên:</label>
+                    <input type="text" id="updateFullName" placeholder="Nguyễn Văn A" value="Minh Châu Updated">
+                </div>
+                <div class="form-group">
+                    <label for="updatePhone">Số điện thoại:</label>
+                    <input type="text" id="updatePhone" placeholder="0901234567" value="0372353725">
+                </div>
+                <div class="form-group">
+                    <label for="updateAvatarUrl">Avatar URL:</label>
+                    <input type="text" id="updateAvatarUrl" placeholder="https://example.com/avatar.jpg" value="https://i.pravatar.cc/150?img=12">
+                </div>
+                <button onclick="updateProfile()">💾 Cập Nhật Profile</button>
+                <div id="updateResponse" class="response" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="card">
+            <h2>📊 Kết Quả Test</h2>
+            <div id="testResults" style="color: #666; font-size: 14px;">
+                Chưa có kết quả test. Hãy thử các API ở trên.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8080/webAPI3/api';
+        let testResults = [];
+
+        function addTestResult(api, status, message) {
+            const timestamp = new Date().toLocaleTimeString('vi-VN');
+            testResults.push({
+                time: timestamp,
+                api: api,
+                status: status,
+                message: message
+            });
+            updateTestResults();
+        }
+
+        function updateTestResults() {
+            const resultsDiv = document.getElementById('testResults');
+            if (testResults.length === 0) {
+                resultsDiv.innerHTML = 'Chưa có kết quả test.';
+                return;
+            }
+
+            let html = '<table style="width:100%; border-collapse: collapse;">';
+            html += '<tr style="background:#f5f7fa;"><th style="padding:10px; text-align:left;">Thời gian</th><th style="padding:10px; text-align:left;">API</th><th style="padding:10px; text-align:left;">Trạng thái</th><th style="padding:10px; text-align:left;">Kết quả</th></tr>';
+            
+            testResults.reverse().forEach(result => {
+                const statusColor = result.status === 'success' ? '#28a745' : '#dc3545';
+                const statusText = result.status === 'success' ? '✅ Thành công' : '❌ Lỗi';
+                html += `<tr style="border-bottom:1px solid #e1e8ed;">
+                    <td style="padding:10px;">${result.time}</td>
+                    <td style="padding:10px;"><strong>${result.api}</strong></td>
+                    <td style="padding:10px; color:${statusColor};">${statusText}</td>
+                    <td style="padding:10px;">${result.message}</td>
+                </tr>`;
+            });
+            
+            html += '</table>';
+            resultsDiv.innerHTML = html;
+        }
+
+        async function getProfile() {
+            const userId = document.getElementById('getUserId').value;
+            const responseDiv = document.getElementById('getResponse');
+
+            if (!userId) {
+                alert('Vui lòng nhập User ID');
+                return;
+            }
+
+            try {
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response';
+                responseDiv.textContent = 'Đang tải...';
+
+                const response = await fetch(`${BASE_URL}/profile?userId=${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = JSON.stringify(data, null, 2);
+                    addTestResult('GET /api/profile', 'success', `Lấy profile thành công cho userId=${userId}`);
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = JSON.stringify(data, null, 2);
+                    addTestResult('GET /api/profile', 'error', data.message);
+                }
+            } catch (error) {
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `Lỗi: ${error.message}\n\nCó thể backend chưa chạy hoặc URL không đúng.`;
+                addTestResult('GET /api/profile', 'error', error.message);
+            }
+        }
+
+        async function updateProfile() {
+            const userId = document.getElementById('updateUserId').value;
+            const fullName = document.getElementById('updateFullName').value;
+            const phone = document.getElementById('updatePhone').value;
+            const avatarUrl = document.getElementById('updateAvatarUrl').value;
+            const responseDiv = document.getElementById('updateResponse');
+
+            if (!userId) {
+                alert('Vui lòng nhập User ID');
+                return;
+            }
+
+            try {
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response';
+                responseDiv.textContent = 'Đang cập nhật...';
+
+                const requestBody = {
+                    userId: parseInt(userId),
+                    fullName: fullName,
+                    phone: phone,
+                    avatarUrl: avatarUrl
+                };
+
+                const response = await fetch(`${BASE_URL}/profile/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = JSON.stringify(data, null, 2);
+                    addTestResult('POST /api/profile/update', 'success', `Cập nhật profile thành công cho userId=${userId}`);
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = JSON.stringify(data, null, 2);
+                    addTestResult('POST /api/profile/update', 'error', data.message);
+                }
+            } catch (error) {
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `Lỗi: ${error.message}\n\nCó thể backend chưa chạy hoặc URL không đúng.`;
+                addTestResult('POST /api/profile/update', 'error', error.message);
+            }
+        }
+    </script>
+</body>
+</html>

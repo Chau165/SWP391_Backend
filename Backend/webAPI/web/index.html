@@ -67,6 +67,11 @@ d<!DOCTYPE html>
                 <a href="#" id="forgotLink" onclick="openForgotModal(); return false;">Quên mật khẩu?</a>
             </div>
             <pre id="loginResult"></pre>
+            
+            <!-- Nút xem Profile (ẩn mặc định, hiện sau khi login) -->
+            <div id="profileSection" style="display:none; margin-top:10px;">
+                <button onclick="openProfileModal()" style="background:#27ae60;">👤 Xem Profile</button>
+            </div>
         </div>
 
         <!-- Đăng ký -->
@@ -184,8 +189,125 @@ d<!DOCTYPE html>
             </div>
         </div>
 
+        <!-- 👤 PROFILE MODAL -->
+        <div id="profileModal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; overflow:auto;">
+            <div style="background:white; width:500px; max-width:90%; margin:50px auto; padding:25px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+                <h3>👤 Thông Tin Profile</h3>
+                
+                <!-- View Mode -->
+                <div id="profileViewMode">
+                    <div style="margin-bottom:15px;">
+                        <strong>Họ và tên:</strong> <span id="viewFullName">-</span>
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <strong>Email:</strong> <span id="viewEmail">-</span>
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <strong>Số điện thoại:</strong> <span id="viewPhone">-</span>
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <strong>Role:</strong> <span id="viewRole">-</span>
+                    </div>
+                    
+                    <!-- Package Info (chỉ hiện cho Driver) -->
+                    <div id="packageInfo" style="display:none; background:#e8f5e9; padding:10px; border-radius:5px; margin:15px 0;">
+                        <h4 style="margin:0 0 10px 0;">� Gói Pin Hiện Tại</h4>
+                        <div style="margin-bottom:8px;">
+                            <strong>Tên gói:</strong> <span id="viewPackageName">-</span>
+                        </div>
+                        <div style="margin-bottom:8px;">
+                            <strong>Ngày bắt đầu:</strong> <span id="viewPackageStart">-</span>
+                        </div>
+                        <div style="margin-bottom:8px;">
+                            <strong>Ngày kết thúc:</strong> <span id="viewPackageEnd">-</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:15px;">
+                        <strong>Avatar URL:</strong> <span id="viewAvatarUrl">-</span>
+                    </div>
+                    
+                    <div style="text-align:right; margin-top:20px;">
+                        <button onclick="switchToEditMode()" style="background:#f39c12; width:auto; margin-right:10px;">✏️ Sửa Profile</button>
+                        <button onclick="closeProfileModal()" style="background:#95a5a6; width:auto;">Đóng</button>
+                    </div>
+                </div>
+                
+                <!-- Edit Mode -->
+                <div id="profileEditMode" style="display:none;">
+                    <div style="margin-bottom:15px;">
+                        <label><strong>Họ và tên:</strong></label>
+                        <input type="text" id="editFullName" style="width:100%; padding:8px; border-radius:4px; border:1px solid #aaa;" />
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <label><strong>Email:</strong></label>
+                        <input type="text" id="editEmail" readonly style="width:100%; padding:8px; border-radius:4px; border:1px solid #ddd; background:#f5f5f5;" />
+                        <small style="color:#666;">Email không thể thay đổi</small>
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <label><strong>Số điện thoại:</strong></label>
+                        <input type="text" id="editPhone" style="width:100%; padding:8px; border-radius:4px; border:1px solid #aaa;" />
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <label><strong>Role:</strong></label>
+                        <input type="text" id="editRole" readonly style="width:100%; padding:8px; border-radius:4px; border:1px solid #ddd; background:#f5f5f5;" />
+                        <small style="color:#666;">Role không thể thay đổi</small>
+                    </div>
+                    
+                    <!-- Avatar Section với 2 options -->
+                    <div style="margin-bottom:15px; border:1px solid #ddd; padding:15px; border-radius:5px; background:#f9f9f9;">
+                        <label><strong>Avatar:</strong></label>
+                        
+                        <!-- Option 1: URL -->
+                        <div style="margin-top:10px;">
+                            <label style="font-weight:normal;">
+                                <input type="radio" name="avatarOption" value="url" checked onchange="toggleAvatarInput()"> 
+                                Nhập URL từ Internet
+                            </label>
+                            <input type="text" id="editAvatarUrl" placeholder="https://i.pravatar.cc/150?img=12" 
+                                   style="width:100%; padding:8px; border-radius:4px; border:1px solid #aaa; margin-top:5px;" />
+                        </div>
+                        
+                        <!-- Option 2: Upload File -->
+                        <div style="margin-top:10px;">
+                            <label style="font-weight:normal;">
+                                <input type="radio" name="avatarOption" value="file" onchange="toggleAvatarInput()"> 
+                                Upload ảnh từ máy
+                            </label>
+                            <input type="file" id="editAvatarFile" accept="image/*" 
+                                   style="width:100%; padding:8px; border-radius:4px; border:1px solid #aaa; margin-top:5px; display:none;" 
+                                   onchange="previewAvatar(event)" />
+                        </div>
+                        
+                        <!-- Preview Avatar -->
+                        <div id="avatarPreview" style="margin-top:10px; display:none;">
+                            <p style="margin:5px 0;"><strong>Preview:</strong></p>
+                            <img id="avatarPreviewImg" src="" alt="Avatar preview" 
+                                 style="width:100px; height:100px; border-radius:50%; border:2px solid #ddd; object-fit:cover;" />
+                        </div>
+                        
+                        <!-- Upload progress -->
+                        <div id="uploadProgress" style="margin-top:10px; display:none; color:#1976d2;">
+                            <p>⏳ Đang upload ảnh...</p>
+                        </div>
+                    </div>
+                    
+                    <div id="profileMsg" style="margin:15px 0; padding:10px; border-radius:5px; display:none;"></div>
+                    
+                    <div style="text-align:right; margin-top:20px;">
+                        <button onclick="saveProfile()" style="background:#27ae60; width:auto; margin-right:10px;">💾 Lưu</button>
+                        <button onclick="switchToViewMode()" style="background:#95a5a6; width:auto;">❌ Hủy</button>
+                    </div>
+                </div>
+                
+                <div id="profileLoading" style="text-align:center; padding:20px; display:none;">
+                    <p>Đang tải thông tin...</p>
+                </div>
+            </div>
+        </div>
+
         <script>
-            // 👉 BASE_URL - lấy context path của ứng dụng
+            // �👉 BASE_URL - lấy context path của ứng dụng
             // Ví dụ: http://localhost:8080/webAPI => BASE_URL = http://localhost:8080/webAPI
             const BASE_URL = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
             console.log('DEBUG - BASE_URL:', BASE_URL);
@@ -193,6 +315,271 @@ d<!DOCTYPE html>
             
             let loggedUserId = null; // lưu userId sau login
             let loggedUserRole = null; // role của user (driver/staff/admin)
+            let currentProfile = null; // lưu profile data
+
+            // ===== PROFILE FUNCTIONS =====
+            async function openProfileModal() {
+                if (!loggedUserId) {
+                    alert('⚠️ Vui lòng đăng nhập trước!');
+                    return;
+                }
+                
+                const modal = document.getElementById('profileModal');
+                const loading = document.getElementById('profileLoading');
+                const viewMode = document.getElementById('profileViewMode');
+                const editMode = document.getElementById('profileEditMode');
+                
+                // Show modal and loading
+                modal.style.display = 'block';
+                loading.style.display = 'block';
+                viewMode.style.display = 'none';
+                editMode.style.display = 'none';
+                
+                try {
+                    // Fetch profile from API
+                    const res = await fetch(`${BASE_URL}/api/profile?userId=${loggedUserId}`);
+                    const result = await res.json();
+                    
+                    console.log('Profile API response:', result);
+                    
+                    if (!result.success) {
+                        alert('❌ Không thể tải profile: ' + result.message);
+                        closeProfileModal();
+                        return;
+                    }
+                    
+                    currentProfile = result.data;
+                    
+                    // Populate view mode
+                    document.getElementById('viewFullName').textContent = currentProfile.fullName || '-';
+                    document.getElementById('viewEmail').textContent = currentProfile.email || '-';
+                    document.getElementById('viewPhone').textContent = currentProfile.phone || '-';
+                    document.getElementById('viewRole').textContent = currentProfile.role || '-';
+                    document.getElementById('viewAvatarUrl').textContent = currentProfile.avatarUrl || 'Chưa có';
+                    
+                    // Show package info if Driver and has package
+                    if (currentProfile.role && currentProfile.role.toLowerCase() === 'driver' && currentProfile.currentPackageId) {
+                        document.getElementById('packageInfo').style.display = 'block';
+                        document.getElementById('viewPackageName').textContent = currentProfile.packageName || '-';
+                        document.getElementById('viewPackageStart').textContent = currentProfile.packageStartDate || '-';
+                        document.getElementById('viewPackageEnd').textContent = currentProfile.packageEndDate || '-';
+                    } else {
+                        document.getElementById('packageInfo').style.display = 'none';
+                    }
+                    
+                    // Show view mode
+                    loading.style.display = 'none';
+                    viewMode.style.display = 'block';
+                    
+                } catch (err) {
+                    console.error('Error loading profile:', err);
+                    alert('❌ Lỗi khi tải profile: ' + err);
+                    closeProfileModal();
+                }
+            }
+
+            function closeProfileModal() {
+                document.getElementById('profileModal').style.display = 'none';
+            }
+
+            function switchToEditMode() {
+                if (!currentProfile) return;
+                
+                // Populate edit fields
+                document.getElementById('editFullName').value = currentProfile.fullName || '';
+                document.getElementById('editEmail').value = currentProfile.email || '';
+                document.getElementById('editPhone').value = currentProfile.phone || '';
+                document.getElementById('editRole').value = currentProfile.role || '';
+                document.getElementById('editAvatarUrl').value = currentProfile.avatarUrl || '';
+                
+                // Reset avatar input
+                document.querySelector('input[name="avatarOption"][value="url"]').checked = true;
+                toggleAvatarInput();
+                document.getElementById('avatarPreview').style.display = 'none';
+                
+                // Switch modes
+                document.getElementById('profileViewMode').style.display = 'none';
+                document.getElementById('profileEditMode').style.display = 'block';
+                document.getElementById('profileMsg').style.display = 'none';
+            }
+
+            function switchToViewMode() {
+                document.getElementById('profileEditMode').style.display = 'none';
+                document.getElementById('profileViewMode').style.display = 'block';
+            }
+
+            // Toggle giữa URL input và File input
+            function toggleAvatarInput() {
+                const option = document.querySelector('input[name="avatarOption"]:checked').value;
+                const urlInput = document.getElementById('editAvatarUrl');
+                const fileInput = document.getElementById('editAvatarFile');
+                
+                if (option === 'url') {
+                    urlInput.style.display = 'block';
+                    fileInput.style.display = 'none';
+                    document.getElementById('avatarPreview').style.display = 'none';
+                } else {
+                    urlInput.style.display = 'none';
+                    fileInput.style.display = 'block';
+                }
+            }
+
+            // Preview avatar khi user chọn file
+            function previewAvatar(event) {
+                const file = event.target.files[0];
+                if (!file) {
+                    document.getElementById('avatarPreview').style.display = 'none';
+                    return;
+                }
+                
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    alert('⚠️ Vui lòng chọn file ảnh (jpg, png, gif)');
+                    event.target.value = '';
+                    return;
+                }
+                
+                // Validate file size (max 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('⚠️ File quá lớn! Vui lòng chọn ảnh nhỏ hơn 10MB');
+                    event.target.value = '';
+                    return;
+                }
+                
+                // Preview image
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('avatarPreviewImg').src = e.target.result;
+                    document.getElementById('avatarPreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+
+            async function saveProfile() {
+                if (!loggedUserId) return;
+                
+                const fullName = document.getElementById('editFullName').value.trim();
+                const phone = document.getElementById('editPhone').value.trim();
+                
+                if (!fullName) {
+                    alert('⚠️ Họ và tên không được để trống!');
+                    return;
+                }
+                
+                const msgBox = document.getElementById('profileMsg');
+                msgBox.textContent = 'Đang xử lý...';
+                msgBox.style.background = '#e3f2fd';
+                msgBox.style.color = '#1976d2';
+                msgBox.style.display = 'block';
+                
+                try {
+                    let avatarUrl = '';
+                    
+                    // Check avatar option
+                    const avatarOption = document.querySelector('input[name="avatarOption"]:checked').value;
+                    
+                    if (avatarOption === 'url') {
+                        // Use URL directly
+                        avatarUrl = document.getElementById('editAvatarUrl').value.trim();
+                    } else {
+                        // Upload file first
+                        const fileInput = document.getElementById('editAvatarFile');
+                        if (fileInput.files.length > 0) {
+                            msgBox.textContent = 'Đang upload ảnh...';
+                            document.getElementById('uploadProgress').style.display = 'block';
+                            
+                            avatarUrl = await uploadAvatar(fileInput.files[0]);
+                            
+                            document.getElementById('uploadProgress').style.display = 'none';
+                            
+                            if (!avatarUrl) {
+                                msgBox.textContent = '❌ Upload ảnh thất bại!';
+                                msgBox.style.background = '#ffebee';
+                                msgBox.style.color = '#c62828';
+                                return;
+                            }
+                            
+                            msgBox.textContent = 'Ảnh đã upload, đang lưu profile...';
+                        }
+                    }
+                    
+                    // Save profile with avatar URL
+                    const res = await fetch(`${BASE_URL}/api/profile/update`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: loggedUserId,
+                            fullName: fullName,
+                            phone: phone,
+                            avatarUrl: avatarUrl
+                        })
+                    });
+                    
+                    const result = await res.json();
+                    console.log('Update profile response:', result);
+                    
+                    if (result.success) {
+                        msgBox.textContent = '✅ ' + result.message;
+                        msgBox.style.background = '#e8f5e9';
+                        msgBox.style.color = '#2e7d32';
+                        
+                        // Update current profile
+                        currentProfile.fullName = fullName;
+                        currentProfile.phone = phone;
+                        currentProfile.avatarUrl = avatarUrl;
+                        
+                        // Update view mode
+                        document.getElementById('viewFullName').textContent = fullName;
+                        document.getElementById('viewPhone').textContent = phone;
+                        document.getElementById('viewAvatarUrl').textContent = avatarUrl || 'Chưa có';
+                        
+                        // Switch back to view mode after 1.5s
+                        setTimeout(() => {
+                            switchToViewMode();
+                        }, 1500);
+                    } else {
+                        msgBox.textContent = '❌ ' + result.message;
+                        msgBox.style.background = '#ffebee';
+                        msgBox.style.color = '#c62828';
+                    }
+                    
+                } catch (err) {
+                    console.error('Error saving profile:', err);
+                    msgBox.textContent = '❌ Lỗi: ' + err;
+                    msgBox.style.background = '#ffebee';
+                    msgBox.style.color = '#c62828';
+                }
+            }
+
+            // Upload avatar file to server
+            async function uploadAvatar(file) {
+                try {
+                    const formData = new FormData();
+                    formData.append('avatar', file);
+                    
+                    const res = await fetch(`${BASE_URL}/api/upload-avatar`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await res.json();
+                    console.log('Upload avatar response:', result);
+                    
+                    if (result.success) {
+                        // Return full URL
+                        return window.location.origin + result.avatarUrl;
+                    } else {
+                        console.error('Upload failed:', result.message);
+                        alert('❌ Upload thất bại: ' + result.message);
+                        return null;
+                    }
+                    
+                } catch (err) {
+                    console.error('Error uploading avatar:', err);
+                    alert('❌ Lỗi upload: ' + err);
+                    return null;
+                }
+            }
 
             // ===== Login =====
             async function login() {
@@ -213,6 +600,13 @@ d<!DOCTYPE html>
             loggedUserRole = (data?.user?.role || '').toLowerCase();
             
             console.log('DEBUG login - userId:', loggedUserId, 'role:', loggedUserRole);
+            
+            // ✅ Show Profile button after successful login
+            if (loggedUserId) {
+                document.getElementById('profileSection').style.display = 'block';
+            } else {
+                document.getElementById('profileSection').style.display = 'none';
+            }
             
             // Hide all comment-related UI by default
             const commentCard = document.getElementById('commentCard');

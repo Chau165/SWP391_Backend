@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import logo from "../../assets/react.svg";
 import "./Header.css";
+import "./ProfileButton.css";
 import { Link, useLocation } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
+import UserProfile from '../UserProfile/UserProfile';
 
 // CHỈNH SỬA: Nhận prop onLoginClick từ App.jsx
 export default function Header({ onLoginClick }) { 
@@ -10,6 +12,7 @@ export default function Header({ onLoginClick }) {
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [showBatteryDropdown, setShowBatteryDropdown] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   
   const location = useLocation();
 
@@ -25,6 +28,14 @@ export default function Header({ onLoginClick }) {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // DEBUG: Log user state
+  useEffect(() => {
+    console.log('=== HEADER DEBUG ===');
+    console.log('isLoggedIn:', isLoggedIn);
+    console.log('user:', user);
+    console.log('==================');
+  }, [isLoggedIn, user]);
 
   const isActive = (path) => location.pathname === path;
   const isBatteryActive = () => location.pathname === '/vehicles' || location.pathname === '/battery-pin';
@@ -94,28 +105,69 @@ export default function Header({ onLoginClick }) {
         {/* User Actions */}
         <div className="actions">
           {isLoggedIn ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '10px',
+              flexWrap: 'wrap'
+            }}>
+              {/* User Info */}
               <span style={{ 
-                fontSize: '14px', 
+                fontSize: '13px', 
                 color: '#fff', 
                 fontWeight: '500',
                 backgroundColor: 'rgba(255,255,255,0.1)',
-                padding: '8px 12px',
-                borderRadius: '20px'
+                padding: '6px 12px',
+                borderRadius: '15px',
+                whiteSpace: 'nowrap'
               }}>
                 {user?.fullName || user?.email} ({user?.role})
               </span>
-              <a 
-                href="#" 
-                className="cta login" 
+              
+              {/* Nút Xem Profile */}
+              <button
+                className="cta view-profile" 
+                onClick={(e) => { 
+                  e.preventDefault(); 
+                  console.log('Profile button clicked!');
+                  setShowProfileModal(true);
+                }}
+                style={{ 
+                  backgroundColor: '#28a745',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '10px 20px',
+                  borderRadius: '25px',
+                  color: '#fff',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                👤 Xem Profile
+              </button>
+              
+              {/* Nút Logout */}
+              <button
+                className="cta logout" 
                 onClick={(e) => { 
                   e.preventDefault(); 
                   logout();
                 }}
-                style={{ backgroundColor: '#dc3545' }}
+                style={{ 
+                  backgroundColor: '#dc3545',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '10px 20px',
+                  borderRadius: '25px',
+                  color: '#fff',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  transition: 'all 0.3s ease'
+                }}
               >
-                Logout
-              </a>
+                🚪 Logout
+              </button>
             </div>
           ) : (
             <a 
@@ -131,6 +183,11 @@ export default function Header({ onLoginClick }) {
           )}
         </div>
       </div>
+
+      {/* Profile Modal */}
+      {showProfileModal && (
+        <UserProfile onClose={() => setShowProfileModal(false)} />
+      )}
     </header>
   );
 }

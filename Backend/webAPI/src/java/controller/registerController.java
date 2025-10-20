@@ -2,6 +2,7 @@ package controller;
 
 import DAO.RegistrationOtpDAO;
 import DAO.UsersDAO;
+import DAO.UserProfileDAO;
 import DTO.Users;
 import com.google.gson.Gson;
 import jakarta.servlet.ServletException;
@@ -115,6 +116,12 @@ public class registerController extends HttpServlet {
                 // ✅ CHỈ mark OTP as used SAU KHI tạo user THÀNH CÔNG
                 registrationOtpDAO.markOtpAsUsed(input.email, input.otp);
                 System.out.println("[registerController] User registered successfully with ID: " + newId + ", OTP marked as used");
+                
+                // Tạo profile cho user mới
+                UserProfileDAO profileDAO = new UserProfileDAO();
+                profileDAO.createOrUpdateProfile(newId, input.fullName, input.email, input.phone, "Driver");
+                System.out.println("[registerController] Profile created for new user ID: " + newId);
+                
                 resp.setStatus(201);
                 out.print("{\"status\":\"success\",\"userId\":" + newId + ",\"role\":\"Driver\"}");
             } else {
