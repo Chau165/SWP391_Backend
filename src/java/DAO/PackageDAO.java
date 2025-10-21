@@ -95,4 +95,75 @@ public class PackageDAO {
             }
         }
     }
+     public boolean addPackage(Package pkg) {
+        String sql = "INSERT INTO Package (Name, Description, Price, Required_SoH, MinSoH, MaxSoH) VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, pkg.getName());
+            ps.setString(2, pkg.getDescription());
+            ps.setDouble(3, pkg.getPrice());
+            ps.setDouble(4, pkg.getRequiredSoH());
+            ps.setInt(5, pkg.getMinSoH());
+            ps.setInt(6, pkg.getMaxSoH());
+
+            return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+public List<Object[]> getPackageRevenueStatistics() {
+        List<Object[]> list = new ArrayList<>();
+        String sql = "SELECT\n" +
+                "    P.Package_ID,\n" +
+                "    P.Name,\n" +
+                "    COUNT(PT.Package_ID) AS SoLuongMua,\n" +
+                "    SUM(PT.Amount) AS TongDoanhThu\n" +
+                "FROM\n" +
+                "    Package AS P\n" +
+                "LEFT JOIN\n" +
+                "    PaymentTransaction AS PT ON P.Package_ID = PT.Package_ID\n" +
+                "WHERE\n" +
+                "    PT.Description LIKE N'Buy Battery Package'\n" +
+                "    AND MONTH(PT.Transaction_Time) = MONTH(GETDATE())\n" +
+                "    AND YEAR(PT.Transaction_Time) = YEAR(GETDATE())\n" +
+                "GROUP BY\n" +
+                "    P.Package_ID,\n" +
+                "    P.Name\n" +
+                "ORDER BY\n" +
+                "    Description DESC;";
+
+      try (Connection conn = DBUtils.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql);
+         ResultSet rs = ps.executeQuery()) {
+
+        while (rs.next()) {
+            Object[] row = new Object[4]; // Correct size
+            row[0] = rs.getInt("Package_ID");
+            row[1] = rs.getString("Name");
+            row[2] = rs.getInt("Description"); 
+            row[3] = rs.getDouble("Price");
+            list.add(row);
+        }
+
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+    return list;
+}
+public boolean deletePackage(int packageId) {
+        String sql = "UPDATE Package SET STATUS = 'inactive' WHERE Package_ID = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, packageId);
+            return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    
+    }
 }

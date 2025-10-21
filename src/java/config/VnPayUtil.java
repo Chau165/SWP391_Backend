@@ -1,5 +1,6 @@
 package config;
 
+
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -8,10 +9,11 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.http.HttpServletRequest;
 
+
 public class VnPayUtil {
 
     public static String hmacSHA512(String key, String data) {
-        try {
+        try { 
             Mac hmac512 = Mac.getInstance("HmacSHA512");
             SecretKeySpec secretKey = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA512");
             hmac512.init(secretKey);
