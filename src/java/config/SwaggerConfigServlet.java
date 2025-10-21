@@ -20,7 +20,7 @@ public class SwaggerConfigServlet extends HttpServlet {
 
         // Cho phép CORS
         resp.setHeader("Access-Control-Allow-Origin", "*");
-        resp.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        resp.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
         resp.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
         // === Build base URL động ===
@@ -211,12 +211,10 @@ public class SwaggerConfigServlet extends HttpServlet {
             out.println("      }");
             out.println("    },");
 
-
-// ==== API Add Package ====
+            // ==== API Add Package ====
             out.println("    \"/api/package\": {");
             out.println("      \"post\": {");
             out.println("        \"summary\": \"Thêm gói pin mới\",");
-            out.println("        \"description\": \"Tạo mới một gói pin trong hệ thống\",");
             out.println("        \"requestBody\": {");
             out.println("          \"required\": true,");
             out.println("          \"content\": {");
@@ -224,97 +222,42 @@ public class SwaggerConfigServlet extends HttpServlet {
             out.println("              \"schema\": {");
             out.println("                \"type\": \"object\",");
             out.println("                \"properties\": {");
-            out.println("                  \"packageName\": { \"type\": \"string\", \"description\": \"Tên gói pin\" },");
-            out.println("                  \"description\": { \"type\": \"string\", \"description\": \"Mô tả gói pin\" },");
-            out.println("                  \"price\": { \"type\": \"number\", \"description\": \"Giá gói pin\" },");
-            out.println("                  \"duration\": { \"type\": \"integer\", \"description\": \"Thời hạn gói (ngày)\" },");
-            out.println("                  \"batteryType\": { \"type\": \"string\", \"description\": \"Loại pin\" },");
-            out.println("                  \"capacity\": { \"type\": \"number\", \"description\": \"Dung lượng pin (kWh)\" }");
+            out.println("                  \"packageName\": { \"type\": \"string\" },");
+            out.println("                  \"description\": { \"type\": \"string\" },");
+            out.println("                  \"price\": { \"type\": \"number\" },");
+            out.println("                  \"duration\": { \"type\": \"integer\" },");
+            out.println("                  \"batteryType\": { \"type\": \"string\" },");
+            out.println("                  \"capacity\": { \"type\": \"number\" }");
             out.println("                },");
             out.println("                \"required\": [\"packageName\", \"price\", \"duration\"]");
-            out.println("              },");
-            out.println("              \"example\": {");
-            out.println("                \"packageName\": \"Gói Basic\",");
-            out.println("                \"description\": \"Gói pin cơ bản cho xe máy điện\",");
-            out.println("                \"price\": 200000,");
-            out.println("                \"duration\": 30,");
-            out.println("                \"batteryType\": \"Lithium-ion\",");
-            out.println("                \"capacity\": 2.5");
             out.println("              }");
             out.println("            }");
             out.println("          }");
             out.println("        },");
             out.println("        \"responses\": {");
-            out.println("          \"200\": {");
-            out.println("            \"description\": \"Thêm gói pin thành công\",");
-            out.println("            \"content\": {");
-            out.println("              \"application/json\": {");
-            out.println("                \"schema\": {");
-            out.println("                  \"type\": \"object\",");
-            out.println("                  \"properties\": {");
-            out.println("                    \"status\": { \"type\": \"string\", \"example\": \"success\" },");
-            out.println("                    \"package\": { \"type\": \"object\" }");
-            out.println("                  }");
-            out.println("                }");
-            out.println("              }");
-            out.println("            }");
-            out.println("          },");
+            out.println("          \"200\": { \"description\": \"Thêm gói pin thành công\" },");
             out.println("          \"401\": { \"description\": \"Không có quyền thêm gói pin\" },");
             out.println("          \"500\": { \"description\": \"Lỗi server\" }");
             out.println("        }");
             out.println("      }");
             out.println("    },");
-             // ==== API Package Revenue Statistics ====
+
+            // ==== API Package Revenue Statistics ====
             out.println("    \"/api/package-revenue-statistics\": {");
             out.println("      \"get\": {");
             out.println("        \"summary\": \"Thống kê doanh thu gói pin\",");
-            out.println("        \"description\": \"Lấy thống kê doanh thu theo từng gói pin trong tháng hiện tại\",");
             out.println("        \"responses\": {");
-            out.println("          \"200\": {");
-            out.println("            \"description\": \"Lấy thống kê thành công\",");
-            out.println("            \"content\": {");
-            out.println("              \"application/json\": {");
-            out.println("                \"schema\": {");
-            out.println("                  \"type\": \"object\",");
-            out.println("                  \"properties\": {");
-            out.println("                    \"status\": { \"type\": \"string\", \"example\": \"success\" },");
-            out.println("                    \"data\": {");
-            out.println("                      \"type\": \"array\",");
-            out.println("                      \"items\": {");
-            out.println("                        \"type\": \"array\",");
-            out.println("                        \"items\": {");
-            out.println("                          \"oneOf\": [");
-            out.println("                            { \"type\": \"integer\" },");
-            out.println("                            { \"type\": \"string\" },");
-            out.println("                            { \"type\": \"number\" }");
-            out.println("                          ]");
-            out.println("                        },");
-            out.println("                        \"description\": \"[Package_ID, Name, SoLuongMua, TongDoanhThu]\"");
-            out.println("                      }");
-            out.println("                    }");
-            out.println("                  }");
-            out.println("                },");
-            out.println("                \"example\": {");
-            out.println("                  \"status\": \"success\",");
-            out.println("                  \"data\": [");
-            out.println("                    [1, \"Gói Basic\", 15, 3000000.0],");
-            out.println("                    [2, \"Gói Premium\", 8, 4000000.0]");
-            out.println("                  ]");
-            out.println("                }");
-            out.println("              }");
-            out.println("            }");
-            out.println("          },");
+            out.println("          \"200\": { \"description\": \"Lấy thống kê thành công\" },");
             out.println("          \"204\": { \"description\": \"Không có dữ liệu doanh thu\" },");
             out.println("          \"500\": { \"description\": \"Lỗi server\" }");
             out.println("        }");
             out.println("      }");
             out.println("    },");
 
-  // ==== API Delete Package ====
+            // ==== API Delete Package ====
             out.println("    \"/api/package/delete\": {");
             out.println("      \"post\": {");
             out.println("        \"summary\": \"Xóa gói pin (soft delete)\",");
-            out.println("        \"description\": \"Đánh dấu gói pin là inactive thay vì xóa vật lý\",");
             out.println("        \"requestBody\": {");
             out.println("          \"required\": true,");
             out.println("          \"content\": {");
@@ -322,32 +265,15 @@ public class SwaggerConfigServlet extends HttpServlet {
             out.println("              \"schema\": {");
             out.println("                \"type\": \"object\",");
             out.println("                \"properties\": {");
-            out.println("                  \"packageId\": { \"type\": \"integer\", \"description\": \"ID của gói pin cần xóa\" }");
+            out.println("                  \"packageId\": { \"type\": \"integer\" }");
             out.println("                },");
             out.println("                \"required\": [\"packageId\"]");
-            out.println("              },");
-            out.println("              \"example\": {");
-            out.println("                \"packageId\": 1");
             out.println("              }");
             out.println("            }");
             out.println("          }");
             out.println("        },");
             out.println("        \"responses\": {");
-            out.println("          \"200\": {");
-            out.println("            \"description\": \"Xóa gói pin thành công\",");
-            out.println("            \"content\": {");
-            out.println("              \"application/json\": {");
-            out.println("                \"schema\": {");
-            out.println("                  \"type\": \"object\",");
-            out.println("                  \"properties\": {");
-            out.println("                    \"status\": { \"type\": \"string\", \"example\": \"success\" },");
-            out.println("                    \"message\": { \"type\": \"string\", \"example\": \"Package deleted successfully\" },");
-            out.println("                    \"packageId\": { \"type\": \"integer\" }");
-            out.println("                  }");
-            out.println("                }");
-            out.println("              }");
-            out.println("            }");
-            out.println("          },");
+            out.println("          \"200\": { \"description\": \"Xóa gói pin thành công\" },");
             out.println("          \"400\": { \"description\": \"ID gói pin không hợp lệ\" },");
             out.println("          \"404\": { \"description\": \"Không tìm thấy gói pin hoặc đã bị xóa\" },");
             out.println("          \"500\": { \"description\": \"Lỗi server\" }");
@@ -355,7 +281,6 @@ public class SwaggerConfigServlet extends HttpServlet {
             out.println("      },");
             out.println("      \"delete\": {");
             out.println("        \"summary\": \"Xóa gói pin (soft delete) - DELETE method\",");
-            out.println("        \"description\": \"Đánh dấu gói pin là inactive thay vì xóa vật lý (sử dụng DELETE method)\",");
             out.println("        \"requestBody\": {");
             out.println("          \"required\": true,");
             out.println("          \"content\": {");
@@ -363,35 +288,48 @@ public class SwaggerConfigServlet extends HttpServlet {
             out.println("              \"schema\": {");
             out.println("                \"type\": \"object\",");
             out.println("                \"properties\": {");
-            out.println("                  \"packageId\": { \"type\": \"integer\", \"description\": \"ID của gói pin cần xóa\" }");
+            out.println("                  \"packageId\": { \"type\": \"integer\" }");
             out.println("                },");
             out.println("                \"required\": [\"packageId\"]");
-            out.println("              },");
-            out.println("              \"example\": {");
-            out.println("                \"packageId\": 1");
             out.println("              }");
             out.println("            }");
             out.println("          }");
             out.println("        },");
             out.println("        \"responses\": {");
-            out.println("          \"200\": {");
-            out.println("            \"description\": \"Xóa gói pin thành công\",");
-            out.println("            \"content\": {");
-            out.println("              \"application/json\": {");
-            out.println("                \"schema\": {");
-            out.println("                  \"type\": \"object\",");
-            out.println("                  \"properties\": {");
-            out.println("                    \"status\": { \"type\": \"string\", \"example\": \"success\" },");
-            out.println("                    \"message\": { \"type\": \"string\", \"example\": \"Package deleted successfully\" },");
-            out.println("                    \"packageId\": { \"type\": \"integer\" }");
-            out.println("                  }");
-            out.println("                }");
-            out.println("              }");
-            out.println("            }");
-            out.println("          },");
+            out.println("          \"200\": { \"description\": \"Xóa gói pin thành công\" },");
             out.println("          \"400\": { \"description\": \"ID gói pin không hợp lệ\" },");
             out.println("          \"404\": { \"description\": \"Không tìm thấy gói pin hoặc đã bị xóa\" },");
             out.println("          \"500\": { \"description\": \"Lỗi server\" }");
+            out.println("        }");
+            out.println("      }");
+            out.println("    },");
+
+            // ==== API Payment ====
+            out.println("    \"/api/payment\": {");
+            out.println("      \"get\": {");
+            out.println("        \"summary\": \"Tạo yêu cầu thanh toán VNPay\",");
+            out.println("        \"parameters\": [");
+            out.println("          { \"name\": \"userId\", \"in\": \"query\", \"required\": true, \"schema\": { \"type\": \"string\" } },");
+            out.println("          { \"name\": \"amount\", \"in\": \"query\", \"required\": true, \"schema\": { \"type\": \"string\" } },");
+            out.println("          { \"name\": \"orderType\", \"in\": \"query\", \"required\": true, \"schema\": { \"type\": \"string\" } },");
+            out.println("          { \"name\": \"packageId\", \"in\": \"query\", \"required\": true, \"schema\": { \"type\": \"string\" } }");
+            out.println("        ],");
+            out.println("        \"responses\": {");
+            out.println("          \"302\": { \"description\": \"Chuyển hướng sang trang thanh toán VNPay\" },");
+            out.println("          \"400\": { \"description\": \"Dữ liệu không hợp lệ\" },");
+            out.println("          \"500\": { \"description\": \"Lỗi xử lý nội bộ\" }");
+            out.println("        }");
+            out.println("      }");
+            out.println("    },");
+
+            // ==== API Buy Package ====
+            out.println("    \"/api/buyPackage\": {");
+            out.println("      \"get\": {");
+            out.println("        \"summary\": \"Xử lý callback từ VNPay sau thanh toán\",");
+            out.println("        \"responses\": {");
+            out.println("          \"200\": { \"description\": \"Thanh toán thành công và cập nhật gói pin\" },");
+            out.println("          \"400\": { \"description\": \"Chữ ký không hợp lệ hoặc mã lỗi VNPay\" },");
+            out.println("          \"500\": { \"description\": \"Lỗi xử lý nội bộ\" }");
             out.println("        }");
             out.println("      }");
             out.println("    }");
