@@ -33,7 +33,7 @@ export default function UserProfile({ onClose }) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`http://localhost:8080/webAPI/api/profile?userId=${user.id}`);
+  const response = await fetch(`http://localhost:8080/TestWebAPI/api/profile?userId=${user.id}`);
       const data = await response.json();
 
       if (data.success && data.data) {
@@ -73,7 +73,7 @@ export default function UserProfile({ onClose }) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('http://localhost:8080/webAPI/api/profile/update', {
+  const response = await fetch('http://localhost:8080/TestWebAPI/api/profile/update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

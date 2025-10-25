@@ -19,7 +19,14 @@ export const UserProvider = ({ children }) => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        // Defensive: normalize role from saved data (trim) so isAdmin/isStaff checks work
+        if (parsed && parsed.role) {
+          parsed.role = parsed.role.trim();
+          // persist normalized role back to localStorage so subsequent loads are correct
+          localStorage.setItem('user', JSON.stringify(parsed));
+        }
+        setUser(parsed);
       } catch (error) {
         console.error('Error parsing saved user:', error);
         localStorage.removeItem('user');
@@ -30,7 +37,7 @@ export const UserProvider = ({ children }) => {
   const login = async (email, password) => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/webAPI/api/login', {
+  const response = await fetch('http://localhost:8080/TestWebAPI/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -43,6 +50,8 @@ export const UserProvider = ({ children }) => {
 
       if (response.ok && data.status === 'success') {
         const userData = data.user;
+        // Defensive: trim role to avoid issues from backend whitespace
+        if (userData && userData.role) userData.role = userData.role.trim();
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
         return { success: true, user: userData };

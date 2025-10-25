@@ -19,15 +19,17 @@ public class UsersDAO {
 
             try ( ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    user = new Users(
-                            rs.getInt("ID"),
-                            rs.getString("FullName"),
-                            rs.getString("Phone"),
-                            rs.getString("Email"),
-                            rs.getString("Password"),
-                            rs.getString("Role"),
-                            rs.getObject("Station_ID") != null ? rs.getInt("Station_ID") : null
-                    );
+            String role = rs.getString("Role");
+            if (role != null) role = role.trim();
+            user = new Users(
+                rs.getInt("ID"),
+                rs.getString("FullName"),
+                rs.getString("Phone"),
+                rs.getString("Email"),
+                rs.getString("Password"),
+                role,
+                rs.getObject("Station_ID") != null ? rs.getInt("Station_ID") : null
+            );
                     System.out.println("[DEBUG UsersDAO] Login successful: ID=" + user.getId() + ", Role=" + user.getRole() + ", FullName=" + user.getFullName());
                 }
             }
@@ -63,13 +65,15 @@ public class UsersDAO {
             
             System.out.println("[UsersDAO] insertUser - START");
             System.out.println("[UsersDAO] Email: " + u.getEmail());
-            System.out.println("[UsersDAO] Role: " + u.getRole());
+            String roleToInsert = u.getRole();
+            if (roleToInsert != null) roleToInsert = roleToInsert.trim();
+            System.out.println("[UsersDAO] Role: " + roleToInsert);
             
             ps.setString(1, u.getFullName());
             ps.setString(2, u.getPhone());
             ps.setString(3, u.getEmail());
             ps.setString(4, u.getPassword());
-            ps.setString(5, u.getRole());
+            ps.setString(5, roleToInsert);
             
             // SQL Server: Station_ID có thể cần xử lý khác
             if (u.getStationId() == null) {
@@ -162,6 +166,83 @@ public class UsersDAO {
         
         int userId = insertUser(newUser);
         return userId > 0;
+    }
+
+    // --- Staff/Admin helpers used by StaffController ---
+    public java.util.List<Users> getUsersByRole(String role) {
+        java.util.List<Users> list = new java.util.ArrayList<>();
+        String sql = "SELECT ID, FullName, Phone, Email, Password, Role, Station_ID FROM Users WHERE Role = ?";
+        try (java.sql.Connection conn = DBUtils.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, role);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String r = rs.getString("Role"); if (r != null) r = r.trim();
+                    Users u = new Users(
+                            rs.getInt("ID"),
+                            rs.getString("FullName"),
+                            rs.getString("Phone"),
+                            rs.getString("Email"),
+                            rs.getString("Password"),
+                            r,
+                            rs.getObject("Station_ID") != null ? rs.getInt("Station_ID") : null
+                    );
+                    list.add(u);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public boolean createStaff(Users u) {
+        // set role to Staff defensively
+        if (u.getRole() == null || u.getRole().trim().isEmpty()) u.setRole("Staff"); else u.setRole(u.getRole().trim());
+        int id = insertUser(u);
+        return id > 0;
+    }
+
+    public boolean updateStaff(Users u) {
+        String sql = "UPDATE Users SET FullName = ?, Phone = ?, Email = ?, Password = ?, Station_ID = ? WHERE ID = ?";
+        try (java.sql.Connection conn = DBUtils.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, u.getFullName());
+            ps.setString(2, u.getPhone());
+            ps.setString(3, u.getEmail());
+            ps.setString(4, u.getPassword());
+            if (u.getStationId() == null) ps.setNull(5, java.sql.Types.INTEGER); else ps.setInt(5, u.getStationId());
+            ps.setInt(6, u.getId());
+            int row = ps.executeUpdate();
+            return row > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean deleteUser(int id) {
+        String sql = "DELETE FROM Users WHERE ID = ?";
+        try (java.sql.Connection conn = DBUtils.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            int row = ps.executeUpdate();
+            return row > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /** Assign a user to a station (set Station_ID) - used by admin */
+    public boolean assignUserToStation(int userId, Integer stationId) {
+        String sql = "UPDATE Users SET Station_ID = ? WHERE ID = ?";
+        try (java.sql.Connection conn = DBUtils.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (stationId == null) ps.setNull(1, java.sql.Types.INTEGER); else ps.setInt(1, stationId);
+            ps.setInt(2, userId);
+            int row = ps.executeUpdate();
+            return row > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }
 

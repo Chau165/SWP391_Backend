@@ -17,13 +17,13 @@ export default function DebugInfo() {
 
     try {
       // Test checkUserSwaps API
-      const response = await fetch('http://localhost:8080/webAPI/api/checkUserSwaps', {
+  const response = await fetch('http://localhost:8080/TestWebAPI/api/checkUserSwaps', {
         credentials: 'include'
       });
 
       const debugData = {
         user: user,
-        apiUrl: 'http://localhost:8080/webAPI/api/checkUserSwaps',
+  apiUrl: 'http://localhost:8080/TestWebAPI/api/checkUserSwaps',
         responseStatus: response.status,
         responseStatusText: response.statusText,
         responseHeaders: Object.fromEntries(response.headers.entries()),

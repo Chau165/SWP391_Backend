@@ -1,0 +1,6 @@
+<%@ page contentType="application/json;charset=UTF-8" %>
+<%
+	// Backup file - harmless stub to avoid JSP compile errors while we iterate.
+	out.print("[]");
+%>
+

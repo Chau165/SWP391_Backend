@@ -168,6 +168,22 @@ export default function Header({ onLoginClick }) {
               >
                 🚪 Logout
               </button>
+              {/* Open Admin Dashboard - chỉ hiện cho role Admin */}
+              {user?.role === 'Admin' && (
+                <Link to="/admin" className="cta open-admin" style={{
+                  backgroundColor: '#0d6efd',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '10px 18px',
+                  borderRadius: '25px',
+                  color: '#fff',
+                  fontWeight: '700',
+                  fontSize: '13px',
+                  textDecoration: 'none'
+                }}>
+                  🛠️ Open Admin Dashboard
+                </Link>
+              )}
             </div>
           ) : (
             <a 

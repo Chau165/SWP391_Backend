@@ -141,6 +141,8 @@ d<!DOCTYPE html>
         <div class="card" id="adminCommentControls" style="display:none;">
             <h2>Admin: Quản lý nhận xét</h2>
             <button onclick="fetchCommentsForAdmin()">Lấy nhận xét</button>
+            <!-- Open Admin Dashboard button (hidden by default, shown for Admin) -->
+            <button id="openAdminDashboardBtn" style="display:none; margin-top:8px; background:#0d6efd;" onclick="openAdminDashboard()">🛠️ Open Admin Dashboard</button>
             <pre id="commentsList"></pre>
         </div>
 
@@ -310,8 +312,80 @@ d<!DOCTYPE html>
             // �👉 BASE_URL - lấy context path của ứng dụng
             // Ví dụ: http://localhost:8080/webAPI => BASE_URL = http://localhost:8080/webAPI
             const BASE_URL = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+            // URL đến Admin Dashboard (backend static page under the same app context).
+            // Default: use the app BASE_URL + '/admin' so it opens the admin page under the same webapp context.
+            // To override (e.g. if frontend admin is hosted elsewhere) set window.ADMIN_DASHBOARD_URL before login.
+            window.ADMIN_DASHBOARD_URL = window.ADMIN_DASHBOARD_URL || (BASE_URL + '/admin');
             console.log('DEBUG - BASE_URL:', BASE_URL);
             console.log('DEBUG - Full URL:', window.location.href);
+
+            // Try to open admin dashboard safely: probe URL with HEAD, if 200 open in new tab, else show friendly message.
+            async function openAdminDashboard() {
+                const url = window.ADMIN_DASHBOARD_URL || (window.location.origin + '/admin');
+                console.log('Attempting to open Admin Dashboard at', url);
+                try {
+                    // Use fetch HEAD to probe. Some servers don't allow HEAD; fallback to GET with range.
+                    let ok = false;
+                    try {
+                        const resp = await fetch(url, { method: 'HEAD', mode: 'same-origin' });
+                        ok = resp && resp.ok;
+                    } catch (e) {
+                        // try GET but only request small bytes to avoid loading large pages
+                        try {
+                            const resp2 = await fetch(url, { method: 'GET', mode: 'same-origin' });
+                            ok = resp2 && resp2.ok;
+                        } catch (e2) {
+                            ok = false;
+                        }
+                    }
+
+                    if (ok) {
+                        window.open(url, '_blank');
+                        return;
+                    }
+                } catch (err) {
+                    console.warn('Error probing admin dashboard URL', err);
+                }
+
+                // If not ok, show a helpful modal/in-page note to the admin instead of opening a 404
+                showAdminUnavailable(url);
+            }
+
+            function showAdminUnavailable(url) {
+                // try to reuse or create a small in-page dialog
+                let dlg = document.getElementById('adminUnavailableDlg');
+                if (!dlg) {
+                    dlg = document.createElement('div');
+                    dlg.id = 'adminUnavailableDlg';
+                    dlg.style.position = 'fixed';
+                    dlg.style.left = '20px';
+                    dlg.style.right = '20px';
+                    dlg.style.top = '20px';
+                    dlg.style.maxWidth = '720px';
+                    dlg.style.margin = '0 auto';
+                    dlg.style.background = '#fff';
+                    dlg.style.border = '1px solid #ccc';
+                    dlg.style.padding = '16px';
+                    dlg.style.zIndex = '10000';
+                    dlg.style.boxShadow = '0 6px 24px rgba(0,0,0,0.12)';
+                    dlg.innerHTML = `<h3>Admin Dashboard hiện không thể mở</h3>
+                        <p>Đã thử mở: <code>${url}</code> nhưng server trả về lỗi (404 hoặc không reachable).</p>
+                        <p>Hướng khắc phục nhanh:</p>
+                        <ul>
+                          <li>Kiểm tra xem frontend Admin (React/Vite) đã chạy chưa. Ví dụ: <code>npm run dev</code> trong folder frontend và đảm bảo nó phục vụ <code>/admin</code>.</li>
+                          <li>Nếu Admin được host ở URL khác, bạn có thể cấu hình biến <code>window.ADMIN_DASHBOARD_URL</code> trong console trình duyệt trước khi đăng nhập. Ví dụ:<br><code>window.ADMIN_DASHBOARD_URL = 'http://localhost:5173/admin'</code></li>
+                          <li>Hoặc mở đường dẫn trực tiếp bằng tay trong trình duyệt và kiểm tra logs của frontend server.</li>
+                        </ul>
+                        <div style="text-align:right; margin-top:10px;">
+                          <button id="adminUnavailableOpenManual" style="margin-right:8px; background:#0d6efd; color:#fff; padding:8px 12px; border-radius:6px; border:none;">Mở thủ công</button>
+                          <button id="adminUnavailableClose" style="background:#95a5a6; color:#fff; padding:8px 12px; border-radius:6px; border:none;">Đóng</button>
+                        </div>`;
+                    document.body.appendChild(dlg);
+
+                    document.getElementById('adminUnavailableClose').addEventListener('click', () => { dlg.remove(); });
+                    document.getElementById('adminUnavailableOpenManual').addEventListener('click', () => { window.open(url, '_blank'); });
+                }
+            }
             
             let loggedUserId = null; // lưu userId sau login
             let loggedUserRole = null; // role của user (driver/staff/admin)
@@ -617,6 +691,15 @@ d<!DOCTYPE html>
                 console.log('DEBUG - User is Admin, showing admin controls');
                 if (commentCard) commentCard.style.display = 'none';
                 if (adminCtl) adminCtl.style.display = 'block';
+                // Show Open Admin Dashboard button if present
+                try {
+                    const adminBtn = document.getElementById('openAdminDashboardBtn');
+                    if (adminBtn) {
+                        adminBtn.style.display = 'inline-block';
+                        // set tooltip
+                        adminBtn.title = 'Mở Admin Dashboard (mở tab mới)';
+                    }
+                } catch (ex) { console.warn('Unable to show admin dashboard button', ex); }
             } else if (loggedUserRole === 'driver') {
                 // Driver: show comment form (will check swap status), hide admin controls
                 console.log('DEBUG - User is Driver, will check swap status');

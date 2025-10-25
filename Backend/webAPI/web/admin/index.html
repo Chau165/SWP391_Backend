@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>Admin — Stations</title>
+	<style>
+		body{font-family:Segoe UI,Arial,sans-serif;padding:18px;background:#f6f7fb}
+		h1{margin:0 0 12px}
+		.controls{display:flex;gap:8px;margin-bottom:12px}
+		.panel{background:#fff;border-radius:6px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+		table{width:100%;border-collapse:collapse}
+		th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+		input[type=text],input[type=number]{padding:6px;border:1px solid #ddd;border-radius:4px}
+		.small{width:120px}
+		.muted{color:#666}
+		.btn{padding:6px 10px;border-radius:4px;border:0;cursor:pointer}
+		.btn-primary{background:#1976d2;color:#fff}
+		.btn-danger{background:#c62828;color:#fff}
+	</style>
+</head>
+<body>
+	<h1>Admin — Stations</h1>
+
+	<div class="controls">
+		<input id="newName" placeholder="Station name" style="width:320px" />
+		<input id="newAddress" placeholder="Address" style="width:420px" />
+		<button id="createBtn" class="btn btn-primary">Create Station</button>
+		<button id="refreshBtn" class="btn">Refresh</button>
+		<div id="status" class="muted" style="margin-left:12px"></div>
+	</div>
+
+	<!-- Detail modal (hidden by default) -->
+	<div id="detailModal" style="display:none;position:fixed;left:0;top:0;width:100%;height:100%;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);z-index:9999">
+		<div style="background:#fff;padding:14px;border-radius:8px;max-width:900px;width:95%;max-height:90%;overflow:auto">
+			<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+				<strong id="modalTitle">Station Detail</strong>
+				<button id="closeModal" class="btn">Close</button>
+			</div>
+			<div style="margin-bottom:8px">
+				<label>Station name</label><br/>
+				<input id="modalName" style="width:60%;padding:6px;margin-top:4px" />
+			</div>
+			<div style="margin-bottom:12px">
+				<label>Address</label><br/>
+				<input id="modalAddress" style="width:80%;padding:6px;margin-top:4px" />
+			</div>
+			<div id="modalCsContainer">
+				<!-- Charging stations table will be injected here -->
+			</div>
+			<div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
+				<button id="saveStationBtn" class="btn btn-primary">Save Station</button>
+				<button id="openAddCS" class="btn">Add Charging Station</button>
+			</div>
+			<!-- add CS form (hidden) -->
+			<div id="addCSForm" style="display:none;margin-top:12px;padding:10px;border:1px dashed #ddd;border-radius:6px">
+				<input id="csName" placeholder="CS name" style="width:240px;margin-right:8px" />
+				<input id="csCap" type="number" placeholder="Cap" style="width:80px;margin-right:8px" />
+				<select id="csType" style="width:140px;margin-right:8px">
+					<option value="">--</option>
+					<option value="Lithium-ion">Lithium-ion</option>
+					<option value="LFP">LFP</option>
+				</select>
+				<select id="csPower" style="width:120px;margin-right:8px">
+					<option value="">--</option>
+					<option value="5.0">5.0 kW</option>
+					<option value="3.5">3.5 kW</option>
+				</select>
+				<button id="createCSBtn" class="btn btn-primary">Save CS</button>
+				<button id="cancelCSBtn" class="btn">Cancel</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="panel">
+		<div id="stationsContainer">Loading stations…</div>
+	</div>
+
+	<script>
+		// Base paths — adjust if your webapp context differs
+		const BASE = window.location.origin + '/TestWebAPI';
+		const API_STATIONS_GET = BASE + '/admin/api/stations_with_charging.jsp'; // returns stations with nested ChargingStations
+		const API_STATIONS_CRUD = BASE + '/api/admin/station'; // admin servlet handles create/update/delete (requires session)
+		const API_CS = BASE + '/admin/api/charging_stations'; // servlet for charging station CRUD (GET/POST/DELETE)
+
+		document.getElementById('refreshBtn').addEventListener('click', fetchStations);
+		document.getElementById('createBtn').addEventListener('click', async () => {
+			const name = document.getElementById('newName').value.trim();
+			const address = document.getElementById('newAddress').value.trim();
+			if (!name) { alert('Name required'); return; }
+			setStatus('Creating...');
+			try {
+				const res = await fetch(API_STATIONS_CRUD, {
+					method: 'POST',
+					credentials: 'include',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ Station_ID: 0, Name: name, Address: address })
+				});
+				if (!res.ok) throw new Error('HTTP ' + res.status);
+				setStatus('Created');
+				document.getElementById('newName').value = '';
+				document.getElementById('newAddress').value = '';
+				fetchStations();
+			} catch (err) { setStatus('Create failed: ' + err); }
+		});
+
+		function setStatus(msg){ document.getElementById('status').innerText = msg || ''; }
+
+		async function fetchStations(){
+			setStatus('Loading...');
+			try {
+				const r = await fetch(API_STATIONS_GET, { credentials: 'include' });
+				if (!r.ok) throw new Error('HTTP ' + r.status);
+				const stations = await r.json();
+				window._stations = stations || [];
+				renderStations(window._stations);
+				setStatus('Loaded ' + (stations.length||0) + ' stations');
+			} catch (err) {
+				setStatus('Error: ' + err);
+				document.getElementById('stationsContainer').innerHTML = '<div class="muted">Error loading stations: '+err+'</div>';
+			}
+		}
+
+		function renderStations(stations){
+			const cont = document.getElementById('stationsContainer');
+			if (!Array.isArray(stations) || stations.length === 0) { cont.innerHTML = '<div class="muted">No stations found</div>'; return; }
+
+			let html = '<table><thead><tr><th>ID</th><th>Name</th><th>Address</th><th>Totals</th><th>Actions</th></tr></thead><tbody>';
+			stations.forEach(s => {
+				const id = s.Station_ID || s.StationId || s.id || s.ID;
+				const name = s.Name || s.name || '';
+				const addr = s.Address || s.address || '';
+				const cs = Array.isArray(s.ChargingStations) ? s.ChargingStations : [];
+				const totalSlots = cs.reduce((sum,c)=> sum + (c.Slot_Capacity||0), 0);
+				const totalPower = cs.reduce((sum,c)=> sum + parseFloat((c.Power_Rating||'0').toString().replace(/[^0-9.]/g,'' ) || 0), 0);
+
+				html += `<tr data-id="${id}">`;
+				html += `<td>${id}</td>`;
+				html += `<td><input class="edit-name" value="${escapeHtml(name)}" style="width:260px"/></td>`;
+				html += `<td><input class="edit-address" value="${escapeHtml(addr)}" style="width:360px"/></td>`;
+				// format totals: slots and total power with unit and labels
+				const totalPowerStr = Number(totalPower).toFixed(1).replace(/\.0$/,'');
+				html += `<td>Tổng: ${totalSlots} (Slot) / ${totalPowerStr} kW (Tổng Công Suất)</td>`;
+				html += `<td><button class="btn btn" data-action="open-detail">Edit</button> <button class="btn btn-primary btn-save">Save</button> <button class="btn btn-danger btn-delete">Delete</button> <button class="btn" data-action="toggle-cs">CS</button></td>`;
+				html += `</tr>`;
+
+				// inline charging station rows
+				html += `<tr class="cs-row" data-parent="${id}" style="display:none"><td colspan="5">`;
+				html += `<div style="margin-bottom:8px"><strong>Charging Stations</strong></div>`;
+				html += `<table><thead><tr><th>ID</th><th>Name</th><th>Slot Cap</th><th>Type</th><th>Power</th><th>Actions</th></tr></thead><tbody>`;
+				cs.forEach(c=>{
+					const cid = c.ChargingStation_ID || c.id;
+					const curType = (c.Slot_Type||c.slot_type||'') || '';
+					const curPower = (c.Power_Rating||c.power_rating||'') || '';
+					html += `<tr data-cid="${cid}"><td>${cid}</td><td><input class="cs-name" value="${escapeHtml(c.Name||c.name||'')}"/></td><td><input class="cs-cap" type="number" value="${c.Slot_Capacity||0}" style="width:80px"/></td>`;
+					// normalize current power value (strip non-numeric)
+					const curPowerVal = (String(curPower).match(/\d+(?:\.\d+)?/) || [''])[0];
+					html += `<td><select class="cs-type"><option value="">--</option><option value="Lithium-ion" ${curType==='Lithium-ion'?'selected':''}>Lithium-ion</option><option value="LFP" ${curType==='LFP'?'selected':''}>LFP</option></select></td>`;
+					html += `<td><select class="cs-power" style="width:90px"><option value="">--</option><option value="5.0" ${curPowerVal==='5.0'?'selected':''}>5.0 kW</option><option value="3.5" ${curPowerVal==='3.5'?'selected':''}>3.5 kW</option></select></td>`;
+					html += `<td><button class="btn btn-primary cs-save">Save</button> <button class="btn btn-danger cs-delete">Delete</button></td></tr>`;
+				});
+				// add new row
+				html += `<tr class="cs-new-row"><td>new</td><td><input class="cs-new-name"/></td><td><input class="cs-new-cap" type="number" value="1" style="width:80px"/></td><td><select class="cs-new-type"><option value="">--</option><option value="Lithium-ion">Lithium-ion</option><option value="LFP">LFP</option></select></td><td><select class="cs-new-power" style="width:90px"><option value="">--</option><option value="5.0">5.0 kW</option><option value="3.5">3.5 kW</option></select></td><td><button class="btn btn-primary cs-create">Add</button></td></tr>`;
+				html += `</tbody></table>`;
+				html += `</td></tr>`;
+			});
+			html += '</tbody></table>';
+			cont.innerHTML = html;
+
+			attachHandlers();
+		}
+
+	// helper: try JSON API then fall back to older form-based servlet if JSON endpoint missing (404)
+	async function postChargingStation(body){
+	    // try JSON API
+	    try {
+	        let res = await fetch(API_CS, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+	        if (res.status !== 404) return res;
+	        // fallback to form-based servlet(s)
+	        const action = (body.action||'create').toLowerCase();
+	        const form = new URLSearchParams();
+	        form.append('action', action);
+	        if (action === 'create'){
+	            form.append('stationId', String(body.station_id || body.Station_ID || ''));
+	            form.append('name', String(body.name || ''));
+	            form.append('slotCapacity', String(body.slot_capacity || body.Slot_Capacity || 0));
+	            form.append('slotType', String(body.slot_type || body.Slot_Type || ''));
+	            form.append('powerRating', String(body.power_rating != null ? body.power_rating : (body.Power_Rating || 0)));
+	            // try /admin/charging first, then /charging (some builds map differently)
+	            let res2 = await fetch(BASE + '/admin/charging', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+	            if (res2.status === 404) {
+	                res2 = await fetch(BASE + '/charging', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+	            }
+	            return res2;
+	        } else if (action === 'update'){
+	            form.append('chargingStationId', String(body.id || body.ChargingStation_ID || 0));
+	            form.append('stationId', String(body.station_id || body.Station_ID || 0));
+	            form.append('name', String(body.name || ''));
+	            form.append('slotCapacity', String(body.slot_capacity || body.Slot_Capacity || 0));
+	            form.append('slotType', String(body.slot_type || body.Slot_Type || ''));
+	            form.append('powerRating', String(body.power_rating != null ? body.power_rating : (body.Power_Rating || 0)));
+	            let res2 = await fetch(BASE + '/admin/charging', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+	            if (res2.status === 404) {
+	                res2 = await fetch(BASE + '/charging', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+	            }
+	            return res2;
+	        } else {
+	            // unknown action — return original response
+	            return res;
+	        }
+	    } catch (err) {
+	        // propagate error to caller
+	        throw err;
+	    }
+	}
+
+	function attachHandlers(){
+
+		document.querySelectorAll('button[data-action="toggle-cs"]').forEach(b=> b.addEventListener('click', (e)=>{
+				const tr = e.target.closest('tr'); const id = tr.dataset.id;
+				const row = document.querySelector(`.cs-row[data-parent="${id}"]`);
+				row.style.display = row.style.display === 'none' ? '' : 'none';
+			}));
+
+			document.querySelectorAll('.btn-save').forEach(btn => btn.addEventListener('click', async e=>{
+				const row = e.target.closest('tr');
+				const id = row.dataset.id; const name = row.querySelector('.edit-name').value.trim(); const addr = row.querySelector('.edit-address').value.trim();
+				if (!name) { alert('Name required'); return; }
+				try {
+						const res = await fetch(API_STATIONS_CRUD, { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ Station_ID: parseInt(id,10), Name: name, Address: addr }) });
+					if (!res.ok) throw new Error('HTTP '+res.status);
+					fetchStations();
+				} catch (err) { alert('Update failed: '+err); }
+			}));
+
+			document.querySelectorAll('.btn-delete').forEach(btn => btn.addEventListener('click', async e=>{
+				const row = e.target.closest('tr'); const id = row.dataset.id;
+				if (!confirm('Delete station '+id+'?')) return;
+				try {
+					const res = await fetch(API_STATIONS_CRUD + '?id=' + encodeURIComponent(id), { method: 'DELETE', credentials: 'include' });
+					if (!res.ok) throw new Error('HTTP '+res.status);
+					fetchStations();
+				} catch (err) { alert('Delete failed: '+err); }
+			}));
+
+			// CS handlers
+			document.querySelectorAll('.cs-save').forEach(btn => btn.addEventListener('click', async e=>{
+				const tr = e.target.closest('tr'); const cid = tr.dataset.cid; const parent = tr.closest('.cs-row').dataset.parent;
+				const name = tr.querySelector('.cs-name').value.trim(); const cap = parseInt(tr.querySelector('.cs-cap').value||0,10); const type = tr.querySelector('.cs-type').value.trim(); const power = tr.querySelector('.cs-power').value.trim();
+				try {
+					const pr = parseFloat(String(power).replace(/[^0-9.]/g,'')) || 0;
+					const body = { action: 'update', id: cid, station_id: parent, name: name, slot_capacity: cap, slot_type: type, power_rating: pr };
+					const res = await postChargingStation(body);
+					if (!res.ok) throw new Error('HTTP '+res.status);
+					fetchStations();
+				} catch (err) { alert('CS update failed: '+err); }
+			}));
+
+			document.querySelectorAll('.cs-delete').forEach(btn => btn.addEventListener('click', async e=>{
+				const tr = e.target.closest('tr'); const cid = tr.dataset.cid;
+				if (!confirm('Delete CS '+cid+'?')) return;
+				try {
+					// try API DELETE first, fall back to form POST delete
+					let res = await fetch(API_CS + '?id=' + encodeURIComponent(cid), { method: 'DELETE', credentials: 'include' });
+					if (res.status === 404) {
+						// fallback to older servlet that expects form params
+						const form = new URLSearchParams(); form.append('action','delete'); form.append('id', cid);
+						res = await fetch(BASE + '/admin/charging', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+					}
+					if (!res.ok) throw new Error('HTTP '+res.status);
+					fetchStations();
+				} catch (err) { alert('CS delete failed: '+err); }
+			}));
+
+			document.querySelectorAll('.cs-create').forEach(btn => btn.addEventListener('click', async e=>{
+				const tr = e.target.closest('table').querySelector('.cs-new-row');
+				const parentRow = e.target.closest('.cs-row'); const stationId = parentRow.dataset.parent;
+				const name = tr.querySelector('.cs-new-name').value.trim(); const cap = parseInt(tr.querySelector('.cs-new-cap').value||0,10); const type = tr.querySelector('.cs-new-type').value.trim(); const power = tr.querySelector('.cs-new-power').value.trim();
+				if (!name) { alert('Name required'); return; }
+				try {
+					const pr = parseFloat(String(power).replace(/[^0-9.]/g,'')) || 0;
+					const body = { action:'create', station_id: stationId, name: name, slot_capacity: cap, slot_type: type, power_rating: pr };
+					const res = await postChargingStation(body);
+					if (!res.ok) throw new Error('HTTP '+res.status);
+					fetchStations();
+				} catch (err) { alert('CS create failed: '+err); }
+			}));
+
+			// synchronize type <-> power for inline rows and new rows
+			document.querySelectorAll('tr[data-cid], tr.cs-new-row').forEach(row => {
+				const typeSel = row.querySelector('.cs-type') || row.querySelector('.cs-new-type');
+				const powerSel = row.querySelector('.cs-power') || row.querySelector('.cs-new-power');
+				if (!typeSel || !powerSel) return;
+				const mapTypeToPower = (t) => t === 'Lithium-ion' ? '5.0' : (t === 'LFP' ? '3.5' : '');
+				const mapPowerToType = (p) => p === '5.0' ? 'Lithium-ion' : (p === '3.5' ? 'LFP' : '');
+				typeSel.addEventListener('change', ()=>{
+					const p = mapTypeToPower(typeSel.value);
+					if (p) powerSel.value = p;
+				});
+				powerSel.addEventListener('change', ()=>{
+					const t = mapPowerToType(powerSel.value);
+					if (t) typeSel.value = t;
+				});
+			});
+
+			// open detail modal
+			document.querySelectorAll('button[data-action="open-detail"]').forEach(b=> b.addEventListener('click', (e)=>{
+				const tr = e.target.closest('tr'); const id = tr.dataset.id; const station = (window._stations||[]).find(x=>String(x.Station_ID||x.id||x.ID) === String(id));
+				if (!station) { alert('Station not found'); return; }
+				openDetail(station);
+			}));
+		}
+
+		function openDetail(station){
+			document.getElementById('modalTitle').innerText = 'Station: ' + (station.Station_ID || station.id || '');
+			document.getElementById('modalName').value = station.Name || station.name || '';
+			document.getElementById('modalAddress').value = station.Address || station.address || '';
+			document.getElementById('detailModal').dataset.stationId = station.Station_ID || station.id || '';
+			document.getElementById('detailModal').style.display = 'flex';
+			renderModalCs(station.ChargingStations || []);
+			document.getElementById('addCSForm').style.display = 'none';
+		}
+
+		function closeDetail(){
+			document.getElementById('detailModal').style.display = 'none';
+			document.getElementById('addCSForm').style.display = 'none';
+		}
+
+		function renderModalCs(list){
+			const cont = document.getElementById('modalCsContainer');
+			if (!Array.isArray(list) || list.length === 0) { cont.innerHTML = '<div class="muted">No charging stations</div>'; return; }
+			let html = '<table style="width:100%;border-collapse:collapse"><thead><tr><th>ID</th><th>Name</th><th>Slot Cap</th><th>Type</th><th>Power</th><th>Actions</th></tr></thead><tbody>';
+				list.forEach(c=>{
+				const curType = (c.Slot_Type||c.slot_type||'') || '';
+				const curPower = (c.Power_Rating||c.power_rating||'') || '';
+				html += `<tr data-cid="${c.ChargingStation_ID||c.id}"><td>${c.ChargingStation_ID||c.id}</td><td><input class="modal-cs-name" value="${escapeHtml(c.Name||c.name||'')}" style="width:220px"/></td><td><input class="modal-cs-cap" type="number" value="${c.Slot_Capacity||0}" style="width:80px"/></td>`;
+				html += `<td><select class="modal-cs-type" style="width:140px"><option value="">--</option><option value="Lithium-ion" ${curType==='Lithium-ion'?'selected':''}>Lithium-ion</option><option value="LFP" ${curType==='LFP'?'selected':''}>LFP</option></select></td>`;
+				// normalize power value to numeric string for selection
+				const curPowerValModal = (String(curPower).match(/\d+(?:\.\d+)?/) || [''])[0];
+				html += `<td><select class="modal-cs-power" style="width:90px"><option value="">--</option><option value="5.0" ${curPowerValModal==='5.0'?'selected':''}>5.0 kW</option><option value="3.5" ${curPowerValModal==='3.5'?'selected':''}>3.5 kW</option></select></td>`;
+				html += `<td><button class="btn modal-cs-save">Save</button> <button class="btn btn-danger modal-cs-delete">Delete</button></td></tr>`;
+				});
+			html += '</tbody></table>';
+			cont.innerHTML = html;
+
+			// attach modal CS handlers
+			document.querySelectorAll('.modal-cs-save').forEach(btn=> btn.addEventListener('click', async e=>{
+				const tr = e.target.closest('tr'); const cid = tr.dataset.cid; const stationId = document.getElementById('detailModal').dataset.stationId;
+				const name = tr.querySelector('.modal-cs-name').value.trim(); const cap = parseInt(tr.querySelector('.modal-cs-cap').value||0,10); const type = tr.querySelector('.modal-cs-type').value.trim(); const power = tr.querySelector('.modal-cs-power').value.trim();
+				try {
+					const pr = parseFloat(String(power).replace(/[^0-9.]/g,'')) || 0;
+					const body = { action:'update', id: cid, station_id: stationId, name: name, slot_capacity: cap, slot_type: type, power_rating: pr };
+					const res = await postChargingStation(body);
+					if (!res.ok) throw new Error('HTTP '+res.status);
+					fetchStations(); closeDetail();
+				} catch(err){ alert('CS update failed: '+err); }
+			}));
+
+			document.querySelectorAll('.modal-cs-delete').forEach(btn=> btn.addEventListener('click', async e=>{
+				const tr = e.target.closest('tr'); const cid = tr.dataset.cid; if (!confirm('Delete CS '+cid+'?')) return;
+				try {
+					let res = await fetch(API_CS + '?id=' + encodeURIComponent(cid), { method: 'DELETE', credentials: 'include' });
+					if (res.status === 404) {
+						const form = new URLSearchParams(); form.append('action','delete'); form.append('id', cid);
+						res = await fetch(BASE + '/admin/charging', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+					}
+					if (!res.ok) throw new Error('HTTP '+res.status);
+					fetchStations(); closeDetail();
+				} catch(err){ alert('CS delete failed: '+err); }
+			}));
+
+			// synchronize type <-> power inside modal
+			const mapTypeToPower = (t) => t === 'Lithium-ion' ? '5.0' : (t === 'LFP' ? '3.5' : '');
+			const mapPowerToType = (p) => p === '5.0' ? 'Lithium-ion' : (p === '3.5' ? 'LFP' : '');
+			document.querySelectorAll('select.modal-cs-type').forEach(typeSel => {
+				const tr = typeSel.closest('tr');
+				const powerSel = tr.querySelector('select.modal-cs-power');
+				if (!powerSel) return;
+				typeSel.addEventListener('change', ()=>{ const p = mapTypeToPower(typeSel.value); if(p) powerSel.value = p; });
+			});
+			document.querySelectorAll('select.modal-cs-power').forEach(powerSel => {
+				const tr = powerSel.closest('tr');
+				const typeSel = tr.querySelector('select.modal-cs-type');
+				if (!typeSel) return;
+				powerSel.addEventListener('change', ()=>{ const t = mapPowerToType(powerSel.value); if(t) typeSel.value = t; });
+			});
+		}
+
+		// modal control handlers
+		document.getElementById('closeModal').addEventListener('click', closeDetail);
+
+		document.getElementById('saveStationBtn').addEventListener('click', async () => {
+			const stationId = document.getElementById('detailModal').dataset.stationId || 0;
+			const name = document.getElementById('modalName').value.trim();
+			const address = document.getElementById('modalAddress').value.trim();
+			if (!name) { alert('Name required'); return; }
+			try {
+				// admin endpoint expects POST with Station_ID==0 for insert, else update
+				const res = await fetch(API_STATIONS_CRUD, { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ Station_ID: parseInt(stationId,10), Name: name, Address: address }) });
+				if (!res.ok) throw new Error('HTTP '+res.status);
+				fetchStations(); closeDetail();
+			} catch(err){ alert('Save station failed: '+err); }
+		});
+
+		document.getElementById('openAddCS').addEventListener('click', () => {
+			document.getElementById('csName').value = '';
+			document.getElementById('csCap').value = 1;
+			document.getElementById('csType').value = '';
+			document.getElementById('csPower').value = '';
+			document.getElementById('addCSForm').dataset.stationId = document.getElementById('detailModal').dataset.stationId;
+			document.getElementById('addCSForm').dataset.editId = '';
+			document.getElementById('addCSForm').style.display = 'block';
+		});
+
+		document.getElementById('cancelCSBtn').addEventListener('click', () => { document.getElementById('addCSForm').style.display = 'none'; });
+
+		document.getElementById('createCSBtn').addEventListener('click', async () => {
+			const stationId = document.getElementById('addCSForm').dataset.stationId;
+			const name = document.getElementById('csName').value.trim(); const cap = parseInt(document.getElementById('csCap').value||0,10);
+			const type = document.getElementById('csType').value.trim(); const power = document.getElementById('csPower').value.trim();
+			if (!name) { alert('Name required'); return; }
+			try {
+				// normalize power to numeric and send using helper that falls back to legacy servlet
+				const pr = parseFloat(String(power).replace(/[^0-9.]/g,'')) || 0;
+				const body = { action: 'create', station_id: stationId, name: name, slot_capacity: cap, slot_type: type, power_rating: pr };
+				const res = await postChargingStation(body);
+				if (!res.ok) throw new Error('HTTP '+res.status);
+				fetchStations(); document.getElementById('addCSForm').style.display='none'; closeDetail();
+			} catch(err){ alert('Create CS failed: '+err); }
+		});
+
+		// sync addCSForm type <-> power
+		const addType = document.getElementById('csType');
+		const addPower = document.getElementById('csPower');
+		if (addType && addPower) {
+			const mapTypeToPower = (t) => t === 'Lithium-ion' ? '5.0' : (t === 'LFP' ? '3.5' : '');
+			const mapPowerToType = (p) => p === '5.0' ? 'Lithium-ion' : (p === '3.5' ? 'LFP' : '');
+			addType.addEventListener('change', ()=>{ const p = mapTypeToPower(addType.value); if(p) addPower.value = p; });
+			addPower.addEventListener('change', ()=>{ const t = mapPowerToType(addPower.value); if(t) addType.value = t; });
+		}
+
+		function escapeHtml(str){ if(!str) return ''; return String(str).replace(/[&<>\\"]/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]; }); }
+
+		// initial load
+		fetchStations();
+	</script>
+</body>
+</html>

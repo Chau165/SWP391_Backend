@@ -19,7 +19,7 @@ export default function RegistrationOtpModal({
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const API_BASE_URL = 'http://localhost:8080/webAPI3';
+  const API_BASE_URL = 'http://localhost:8080/TestWebAPI';
 
   // Cập nhật email từ form đăng ký
   useEffect(() => {

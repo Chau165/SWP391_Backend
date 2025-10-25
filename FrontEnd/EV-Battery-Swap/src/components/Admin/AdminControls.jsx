@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useUser } from '../../contexts/UserContext';
 
 export default function AdminControls() {
-  const { user } = useUser();
+  const { user, isAdmin } = useUser();
   const [comments, setComments] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState('');
@@ -12,7 +12,7 @@ export default function AdminControls() {
     setStatus('');
     
     try {
-      const response = await fetch('http://localhost:8080/webAPI/api/comment', {
+  const response = await fetch('http://localhost:8080/TestWebAPI/api/comment', {
         method: 'GET',
         credentials: 'include'
       });
@@ -48,7 +48,7 @@ export default function AdminControls() {
     }
   };
 
-  if (!user || user.role?.toLowerCase() !== 'admin') {
+  if (!isAdmin) {
     return null;
   }
 

@@ -82,6 +82,8 @@ public class loginController extends HttpServlet {
                 System.out.println("[DEBUG loginController] Profile created/updated for userId=" + user.getId());
                 
                 HttpSession session = request.getSession();
+                // Defensive: normalize role before storing in session and serializing
+                if (user.getRole() != null) user.setRole(user.getRole().trim());
                 session.setAttribute("User", user);
                 String json = gson.toJson(user);
                 

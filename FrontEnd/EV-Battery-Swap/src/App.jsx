@@ -12,6 +12,7 @@ import Home from './pages/Home/Home';
 import AboutUs from './pages/About Us/AboutUs';
 import Battery from './pages/Battery Electric/Battery';
 import BatteryPin from './pages/Battery Electric/BatteryPin'; // Thêm import
+import AdminDashboard from './pages/Admin/AdminDashboard';
 // import ForgotPassword from './pages/ForgotPassword'; // REMOVED - ForgotPassword is now in LoginModal
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
               {/* Đảm bảo Route này đã được thêm vào */}
               <Route path="/battery" element={<Battery />} /> 
               <Route path="/battery-pin" element={<BatteryPin />} /> {/* Thêm route mới */}
+              <Route path="/admin" element={<AdminDashboard />} />
               {/* REMOVED: ForgotPassword route - now handled in LoginModal */}
               {/* THÊM ROUTE CHO TRANG 404 NẾU CẦN: <Route path="*" element={<NotFound />} /> */}
             </Routes>

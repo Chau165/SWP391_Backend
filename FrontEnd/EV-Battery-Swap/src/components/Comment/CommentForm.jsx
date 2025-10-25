@@ -22,7 +22,7 @@ export default function CommentForm() {
     setStatus('');
     
     try {
-      const response = await fetch('http://localhost:8080/webAPI/api/checkUserSwaps', {
+  const response = await fetch('http://localhost:8080/TestWebAPI/api/checkUserSwaps', {
         credentials: 'include'
       });
 
@@ -75,7 +75,7 @@ export default function CommentForm() {
     setStatus('');
 
     try {
-      const response = await fetch('http://localhost:8080/webAPI/api/comment', {
+  const response = await fetch('http://localhost:8080/TestWebAPI/api/comment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
