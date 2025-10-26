@@ -26,15 +26,16 @@ public class loginController extends HttpServlet {
     @Override
     protected void doOptions(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        setCorsHeaders(response);
-        response.setStatus(HttpServletResponse.SC_OK);
+        // mirror origin-based CORS behavior (no body for preflight)
+        setCorsHeaders(response, request);
+        response.setStatus(HttpServletResponse.SC_NO_CONTENT);
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        setCorsHeaders(response);
+    setCorsHeaders(response, request);
         response.setContentType("application/json;charset=UTF-8");
 
         try ( PrintWriter out = response.getWriter();  BufferedReader reader = request.getReader()) {
@@ -81,16 +82,12 @@ public class loginController extends HttpServlet {
                 );
                 System.out.println("[DEBUG loginController] Profile created/updated for userId=" + user.getId());
                 
-                HttpSession session = request.getSession();
-                // Defensive: normalize role before storing in session and serializing
-                if (user.getRole() != null) user.setRole(user.getRole().trim());
-                session.setAttribute("User", user);
+                // Generate JWT token instead of using server session
+                String token = util.JwtUtils.generateToken(user.getEmail(), user.getRole(), user.getId());
                 String json = gson.toJson(user);
-                
                 System.out.println("DEBUG - JSON response: " + json);
-                
                 response.setStatus(HttpServletResponse.SC_OK);
-                out.print("{\"status\":\"success\",\"user\":" + json + "}");
+                out.print("{\"status\":\"success\",\"token\":\"" + token + "\",\"user\":" + json + "}");
             } else {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 out.print("{\"status\":\"fail\",\"message\":\"Invalid email or password\"}");
@@ -110,11 +107,22 @@ public class loginController extends HttpServlet {
     //   response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");
     //    response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     //}
-  private void setCorsHeaders(HttpServletResponse response) {
-    response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000"); // React app origin
-    response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");
-    response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    response.setHeader("Access-Control-Allow-Credentials", "true"); // Allow cookies/session
+  private void setCorsHeaders(HttpServletResponse res, HttpServletRequest req) {
+    String origin = req.getHeader("Origin");
+    boolean allowed = origin != null && (
+            origin.equals("http://localhost:5173") || origin.equals("http://127.0.0.1:5173")
+    );
+    if (allowed) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+    } else {
+        res.setHeader("Access-Control-Allow-Origin", "null");
+    }
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, ngrok-skip-browser-warning");
+    res.setHeader("Access-Control-Expose-Headers", "Authorization");
+    res.setHeader("Access-Control-Max-Age", "86400");
 }
 
     private static class LoginRequest {
