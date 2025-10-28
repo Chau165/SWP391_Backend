@@ -13,12 +13,16 @@ import mylib.EmailService;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.Timestamp;
 
-@WebServlet("/api/send-registration-otp")
-public class SendRegistrationOtpController extends HttpServlet {
+@WebServlet("/api/resend-verification")
+public class ResendVerificationController extends HttpServlet {
     private final UsersDAO usersDAO = new UsersDAO();
     private final RegistrationOtpDAO registrationOtpDAO = new RegistrationOtpDAO();
     private final Gson gson = new Gson();
+
+    // cooldown in milliseconds (1 minute)
+    private static final long COOLDOWN_MS = 60 * 1000L;
 
     @Override
     protected void doOptions(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -36,7 +40,7 @@ public class SendRegistrationOtpController extends HttpServlet {
             while ((line = reader.readLine()) != null) {
                 sb.append(line);
             }
-            SendRegistrationOtpRequest req = gson.fromJson(sb.toString(), SendRegistrationOtpRequest.class);
+            ResendRequest req = gson.fromJson(sb.toString(), ResendRequest.class);
             if (req == null || req.email == null || req.email.trim().isEmpty()) {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 out.print("{\"status\":\"fail\",\"message\":\"Email không được để trống\"}");
@@ -47,18 +51,36 @@ public class SendRegistrationOtpController extends HttpServlet {
                 out.print("{\"status\":\"fail\",\"message\":\"Email không hợp lệ\"}");
                 return;
             }
-            // Allow sending registration/activation OTP in two cases:
-            // 1) new email (not in Users) -> registration OTP
-            // 2) existing user but status != 'Active' -> activation OTP
-            // If user already exists and is Active, block (no need to send OTP)
+
+            // Ensure user exists and is not Active
             DTO.Users existing = usersDAO.getUserByEmail(req.email);
-            if (existing != null && existing.getStatus() != null && existing.getStatus().equalsIgnoreCase("Active")) {
-                response.setStatus(HttpServletResponse.SC_CONFLICT);
-                out.print("{\"status\":\"fail\",\"message\":\"Email đã được kích hoạt\"}");
+            if (existing == null) {
+                // No user yet; the frontend should direct them to register instead
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                out.print("{\"status\":\"fail\",\"message\":\"Không tìm thấy tài khoản. Vui lòng đăng ký.\"}");
                 return;
             }
+            if (existing.getStatus() != null && existing.getStatus().equalsIgnoreCase("Active")) {
+                response.setStatus(HttpServletResponse.SC_CONFLICT);
+                out.print("{\"status\":\"fail\",\"message\":\"Tài khoản đã được kích hoạt\"}");
+                return;
+            }
+
+            // Rate limit: check last OTP creation time
+            Timestamp last = registrationOtpDAO.getLastOtpCreatedAt(req.email);
+            if (last != null) {
+                long since = System.currentTimeMillis() - last.getTime();
+                if (since < COOLDOWN_MS) {
+                    long secondsLeft = (COOLDOWN_MS - since + 999) / 1000;
+                    // Some servlet API versions don't define SC_TOO_MANY_REQUESTS constant; use numeric 429
+                    response.setStatus(429);
+                    out.print("{\"status\":\"fail\",\"message\":\"Vui lòng đợi " + secondsLeft + " giây trước khi gửi lại email kích hoạt.\"}");
+                    return;
+                }
+            }
+
+            // Generate, save and send OTP
             String otp = EmailService.generateOtp();
-            System.out.println("[SendRegistrationOtpController] Generated OTP: " + otp + " for email: " + req.email);
             boolean saved = registrationOtpDAO.saveOtp(req.email, otp);
             if (!saved) {
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -71,8 +93,9 @@ public class SendRegistrationOtpController extends HttpServlet {
                 out.print("{\"status\":\"error\",\"message\":\"Không thể gửi email. Vui lòng thử lại sau\"}");
                 return;
             }
+
             response.setStatus(HttpServletResponse.SC_OK);
-            out.print("{\"status\":\"success\",\"message\":\"OTP đã được gửi đến email của bạn\"}");
+            out.print("{\"status\":\"success\",\"message\":\"Verification email has been resent to your email. Please check your inbox.\"}");
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             try (PrintWriter out = response.getWriter()) {
@@ -88,7 +111,7 @@ public class SendRegistrationOtpController extends HttpServlet {
         response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     }
 
-    private static class SendRegistrationOtpRequest {
+    private static class ResendRequest {
         String email;
     }
 }

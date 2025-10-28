@@ -99,4 +99,24 @@ public class RegistrationOtpDAO {
             return false;
         }
     }
+
+    /**
+     * Returns the Created_At timestamp of the most recent OTP record for the given email,
+     * or null if none exists.
+     */
+    public Timestamp getLastOtpCreatedAt(String email) {
+        String sql = "SELECT TOP 1 Created_At FROM Registration_OTP WHERE Email = ? ORDER BY Created_At DESC";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getTimestamp("Created_At");
+            }
+            return null;
+        } catch (Exception e) {
+            System.err.println("[RegistrationOtpDAO] Error fetching last OTP time: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
 }

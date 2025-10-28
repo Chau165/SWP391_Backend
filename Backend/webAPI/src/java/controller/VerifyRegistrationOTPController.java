@@ -16,6 +16,7 @@ import java.io.PrintWriter;
 public class VerifyRegistrationOtpController extends HttpServlet {
     private final RegistrationOtpDAO registrationOtpDAO = new RegistrationOtpDAO();
     private final Gson gson = new Gson();
+    private final DAO.UsersDAO usersDAO = new DAO.UsersDAO();
 
     @Override
     protected void doOptions(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -46,11 +47,33 @@ public class VerifyRegistrationOtpController extends HttpServlet {
             }
             boolean isValid = registrationOtpDAO.verifyOtp(req.email, req.otp);
             if (isValid) {
-                // ✅ KHÔNG mark OTP as used ở đây!
-                // OTP sẽ được mark as used trong registerController sau khi đăng ký thành công
+                // If the email corresponds to an existing user whose status is not Active,
+                // treat this verification as an activation flow: set Status='Active' and mark OTP used.
+                DTO.Users existing = usersDAO.getUserByEmail(req.email);
+                if (existing != null) {
+                    String cur = existing.getStatus();
+                    if (cur == null || !cur.equalsIgnoreCase("Active")) {
+                        boolean updated = usersDAO.updateStatusByEmail(req.email, "Active");
+                        if (updated) {
+                            // mark OTP used for activation
+                            registrationOtpDAO.markOtpAsUsed(req.email, req.otp);
+                            response.setStatus(HttpServletResponse.SC_OK);
+                            out.print("{\"status\":\"success\",\"message\":\"Tài khoản đã được kích hoạt\"}");
+                            System.out.println("[VerifyRegistrationOtpController] Activated account for: " + req.email);
+                            return;
+                        } else {
+                            // failed to update status
+                            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                            out.print("{\"status\":\"error\",\"message\":\"Không thể cập nhật trạng thái tài khoản\"}");
+                            return;
+                        }
+                    }
+                }
+
+                // Otherwise, OTP is valid (registration flow). Don't mark used here; registerController will do it.
                 response.setStatus(HttpServletResponse.SC_OK);
                 out.print("{\"status\":\"success\",\"message\":\"OTP hợp lệ\"}");
-                System.out.println("[VerifyRegistrationOtpController] OTP verified for: " + req.email + " (not marked as used yet)");
+                System.out.println("[VerifyRegistrationOtpController] OTP verified for: " + req.email + " (registration flow)");
             } else {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 out.print("{\"status\":\"fail\",\"message\":\"OTP không hợp lệ hoặc đã hết hạn\"}");

@@ -48,4 +48,38 @@ public class EmailUtil {
         
         return result;
     }
+
+    /**
+     * Send onboarding email with temporary password. Uses existing EmailService if available.
+     */
+    public static boolean sendOnboardingEmail(String email, String tempPassword) {
+        System.out.println("[EmailUtil] Sending onboarding email to: " + email);
+        System.out.println("[EmailUtil] Temporary password: " + tempPassword);
+        try {
+            // Try to call EmailService.sendOnboardingEmail via reflection to avoid compile-time dependency
+            try {
+                Class<?> svc = Class.forName("mylib.EmailService");
+                java.lang.reflect.Method m = null;
+                try {
+                    m = svc.getMethod("sendOnboardingEmail", String.class, String.class);
+                } catch (NoSuchMethodException nsme) {
+                    m = null;
+                }
+                if (m != null) {
+                    Object res = m.invoke(null, email, tempPassword);
+                    if (res instanceof Boolean) return (Boolean) res;
+                    return true;
+                } else {
+                    System.out.println("[EmailUtil] No EmailService.sendOnboardingEmail method found, logged only.");
+                    return true;
+                }
+            } catch (ClassNotFoundException cnfe) {
+                System.out.println("[EmailUtil] EmailService class not found, logged only.");
+                return true;
+            }
+        } catch (Throwable t) {
+            System.err.println("[EmailUtil] Failed to send onboarding email: " + t.getMessage());
+            return false;
+        }
+    }
 }

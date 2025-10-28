@@ -64,6 +64,18 @@ public class loginController extends HttpServlet {
             Users user = usersDAO.checkLogin(loginReq.email, loginReq.password);
 
             if (user != null) {
+                // enforce account status: only Active users may login
+                String status = null;
+                try { status = user.getStatus(); } catch(Exception ex) { status = null; }
+                if (status == null || status.trim().isEmpty() || !"Active".equalsIgnoreCase(status.trim())) {
+                    // blocked or pending
+                    String msg = "Your account cannot access the system";
+                    if ("Blocked".equalsIgnoreCase(status)) msg = "Your account is blocked";
+                    else msg = "Your account is pending activation/verification";
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    out.print("{" + "\"status\":\"fail\",\"message\":\"" + msg.replace("\"", "'") + "\"}");
+                    return;
+                }
                 // DEBUG: Log user details
                 System.out.println("=== LOGIN SUCCESS ===");
                 System.out.println("User ID: " + user.getId());
@@ -71,7 +83,7 @@ public class loginController extends HttpServlet {
                 System.out.println("User Role: " + user.getRole());
                 System.out.println("Role length: " + (user.getRole() != null ? user.getRole().length() : "null"));
                 System.out.println("=====================");
-                
+
                 // Tạo hoặc cập nhật profile cho user
                 profileDAO.createOrUpdateProfile(
                     user.getId(), 
@@ -81,8 +93,21 @@ public class loginController extends HttpServlet {
                     user.getRole()
                 );
                 System.out.println("[DEBUG loginController] Profile created/updated for userId=" + user.getId());
-                
-                // Generate JWT token instead of using server session
+
+                // Create server session so traditional servlets that rely on session (Admin controllers)
+                // can detect the logged-in user via session attribute "User". Also continue returning JWT
+                // for API clients.
+                try {
+                    HttpSession session = request.getSession(true);
+                    session.setAttribute("User", user);
+                    // Optional: set a friendly attribute for debugging
+                    session.setAttribute("UserRole", user.getRole());
+                    System.out.println("[loginController] Session created with ID=" + session.getId());
+                } catch (Exception se) {
+                    System.err.println("[loginController] Unable to create session: " + se.getMessage());
+                }
+
+                // Generate JWT token as before
                 String token = util.JwtUtils.generateToken(user.getEmail(), user.getRole(), user.getId());
                 String json = gson.toJson(user);
                 System.out.println("DEBUG - JSON response: " + json);

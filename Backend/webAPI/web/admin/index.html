@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width,initial-scale=1" />
-	<title>Admin — Stations</title>
+	<title>Admin DASHBOARD</title>
 	<style>
 		body{font-family:Segoe UI,Arial,sans-serif;padding:18px;background:#f6f7fb}
 		h1{margin:0 0 12px}
@@ -20,7 +20,7 @@
 	</style>
 </head>
 <body>
-	<h1>Admin — Stations</h1>
+	<h1>Admin — CRUD Stations</h1>
 
 	<div class="controls">
 		<input id="newName" placeholder="Station name" style="width:320px" />
@@ -76,9 +76,66 @@
 		<div id="stationsContainer">Loading stations…</div>
 	</div>
 
+	<!-- User Management panel -->
+	<div class="panel" style="margin-top:20px">
+		<h2 style="margin-top:0">USER MANAGEMENT</h2>
+		<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+			<div>
+				<input id="userSearch" placeholder="Search by name or email" style="width:320px;padding:6px" />
+				<select id="roleFilter" style="margin-left:8px;padding:6px"><option value="">All Roles</option><option value="Staff">Staff</option><option value="Admin">Admin</option></select>
+				<button id="filterUsers" class="btn">Filter</button>
+			</div>
+			<div>
+				<button id="createStaffBtn" class="btn btn-primary">Create Staff</button>
+			</div>
+		</div>
+		<div id="usersContainer">Loading users…</div>
+	</div>
+
+	<!-- User modal -->
+	<div id="userModal" style="display:none;position:fixed;left:0;top:0;width:100%;height:100%;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);z-index:10000">
+		<div style="background:#fff;padding:14px;border-radius:8px;max-width:640px;width:95%">
+			<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+				<strong id="userModalTitle">Create Staff</strong>
+				<button id="closeUserModal" class="btn">Close</button>
+			</div>
+			<div style="margin-bottom:8px"><label>Full name</label><br/><input id="uFullName" style="width:100%;padding:6px"/></div>
+			<div style="margin-bottom:8px"><label>Email</label><br/><input id="uEmail" style="width:100%;padding:6px"/></div>
+			<div style="margin-bottom:8px"><label>Phone</label><br/><input id="uPhone" style="width:100%;padding:6px"/></div>
+			<div style="margin-bottom:8px"><label>Role</label><br/>
+				<select id="uRole" style="width:100%;padding:6px"><option value="Staff">Staff</option><option value="Admin">Admin</option></select>
+			</div>
+			<div style="margin-bottom:8px"><label>Station (required for Staff)</label><br/>
+				<select id="uStationId" style="width:100%;padding:6px"><option value="">-- Select station --</option></select>
+			</div>
+			<div style="margin-bottom:8px"><label>Status</label><br/>
+				<select id="uStatus" style="width:100%;padding:6px"><option value="Active">Active</option><option value="Blocked">Blocked</option><option value="">(none)</option></select>
+			</div>
+			<div style="margin-bottom:8px"><label>Avatar URL</label><br/>
+				<div style="border:1px solid #eee;padding:8px;border-radius:6px">
+					<label><input type="radio" name="avatarMode" value="url" checked /> Nhập URL từ Internet</label>
+					<div style="margin-top:6px"><input id="uAvatar" style="width:100%;padding:6px" placeholder="https://... or leave empty" /></div>
+					<div style="margin-top:8px"><label><input type="radio" name="avatarMode" value="upload" /> Upload ảnh từ máy</label>
+					<div style="margin-top:6px"><input id="uAvatarFile" type="file" accept="image/*" /></div>
+					</div>
+					<div style="margin-top:6px"><img id="uAvatarPreview" src="" style="width:80px;height:80px;border-radius:8px;display:inline-block"/></div>
+				</div>
+			</div>
+			<div style="margin-bottom:8px;display:none"><label>Password (leave blank to keep)</label><br/><input id="uPassword" type="password" style="width:100%;padding:6px"/></div>
+			<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+				<button id="saveUserBtn" class="btn btn-primary">Save</button>
+				<button id="resetPasswordBtn" class="btn" style="display:none">Reset Password</button>
+				<button id="deleteUserBtn" class="btn btn-danger" style="display:none">Delete</button>
+			</div>
+		</div>
+	</div>
+
 	<script>
-		// Base paths — adjust if your webapp context differs
-		const BASE = window.location.origin + '/TestWebAPI';
+	// Base paths — compute dynamically from current path so admin UI works under different servlet contexts
+	// e.g. if served at http://host/<context>/admin then BASE will be http://host/<context>
+	const _ctxSegment = (window.location.pathname || '').split('/')[1] || '';
+	const _defaultBase = _ctxSegment ? window.location.origin + '/' + _ctxSegment : window.location.origin;
+	const BASE = (window.ADMIN_DASHBOARD_URL_BASE && typeof window.ADMIN_DASHBOARD_URL_BASE === 'string') ? window.ADMIN_DASHBOARD_URL_BASE.replace(/\/$/, '') : _defaultBase.replace(/\/$/, '');
 		const API_STATIONS_GET = BASE + '/admin/api/stations_with_charging.jsp'; // returns stations with nested ChargingStations
 		const API_STATIONS_CRUD = BASE + '/api/admin/station'; // admin servlet handles create/update/delete (requires session)
 		const API_CS = BASE + '/admin/api/charging_stations'; // servlet for charging station CRUD (GET/POST/DELETE)
@@ -120,6 +177,19 @@
 				document.getElementById('stationsContainer').innerHTML = '<div class="muted">Error loading stations: '+err+'</div>';
 			}
 		}
+
+		// when role changes, show/hide station selector (station only for Staff)
+		document.addEventListener('DOMContentLoaded', function() {
+			const roleSel = document.getElementById('uRole');
+			if (!roleSel) return;
+			const stationRow = document.getElementById('uStationId') ? document.getElementById('uStationId').parentElement : null;
+			roleSel.addEventListener('change', function() {
+				try {
+					const v = (roleSel.value||'').toString().toLowerCase();
+					if (stationRow) stationRow.style.display = (v === 'staff') ? '' : 'none';
+				} catch(e) {}
+			});
+		});
 
 		function renderStations(stations){
 			const cont = document.getElementById('stationsContainer');
@@ -228,7 +298,11 @@
 				if (!name) { alert('Name required'); return; }
 				try {
 						const res = await fetch(API_STATIONS_CRUD, { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ Station_ID: parseInt(id,10), Name: name, Address: addr }) });
-					if (!res.ok) throw new Error('HTTP '+res.status);
+					if (!res.ok) {
+						let errText = 'HTTP ' + res.status;
+						try { errText = await res.text(); } catch(e) { /* ignore */ }
+						throw new Error(errText || ('HTTP '+res.status));
+					}
 					fetchStations();
 				} catch (err) { alert('Update failed: '+err); }
 			}));
@@ -238,7 +312,11 @@
 				if (!confirm('Delete station '+id+'?')) return;
 				try {
 					const res = await fetch(API_STATIONS_CRUD + '?id=' + encodeURIComponent(id), { method: 'DELETE', credentials: 'include' });
-					if (!res.ok) throw new Error('HTTP '+res.status);
+					if (!res.ok) {
+						let errText = 'HTTP ' + res.status;
+						try { errText = await res.text(); } catch(e) { /* ignore */ }
+						throw new Error(errText || ('HTTP '+res.status));
+					}
 					fetchStations();
 				} catch (err) { alert('Delete failed: '+err); }
 			}));
@@ -251,7 +329,21 @@
 					const pr = parseFloat(String(power).replace(/[^0-9.]/g,'')) || 0;
 					const body = { action: 'update', id: cid, station_id: parent, name: name, slot_capacity: cap, slot_type: type, power_rating: pr };
 					const res = await postChargingStation(body);
-					if (!res.ok) throw new Error('HTTP '+res.status);
+					if (!res.ok) {
+						// try to extract JSON error message from server for friendlier UI
+						let msg = 'HTTP ' + res.status;
+						try {
+							const errBody = await res.json();
+							if (errBody) {
+								if (errBody.error) msg = errBody.error;
+								else if (errBody.message) msg = errBody.message;
+								else msg = JSON.stringify(errBody);
+							}
+						} catch(e) {
+							try { const t = await res.text(); if (t) msg = t; } catch(e2) { /* ignore */ }
+						}
+						throw new Error(msg);
+					}
 					fetchStations();
 				} catch (err) { alert('CS update failed: '+err); }
 			}));
@@ -441,8 +533,259 @@
 
 		function escapeHtml(str){ if(!str) return ''; return String(str).replace(/[&<>\\"]/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]; }); }
 
-		// initial load
+		// --- User management JS ---
+		const API_USERS = BASE + '/api/admin/users';
+		const DEFAULT_AVATAR = BASE + '/resources/images/avatar_default.svg';
+
+		function getAuthHeaders(){
+			const headers = { 'Content-Type': 'application/json' };
+			try {
+				const token = localStorage.getItem('adminToken') || '';
+				if (token) headers['Authorization'] = 'Bearer ' + token;
+			} catch(e) {}
+			return headers;
+		}
+
+		async function fetchUsers(){
+			const q = document.getElementById('userSearch').value.trim();
+			const role = document.getElementById('roleFilter').value;
+			let url = API_USERS;
+			const params = [];
+			if (role) params.push('role=' + encodeURIComponent(role));
+			if (q) params.push('q=' + encodeURIComponent(q));
+			if (params.length) url += '?' + params.join('&');
+			try {
+				const res = await fetch(url, { method: 'GET', credentials: 'include', headers: getAuthHeaders() });
+				if (!res.ok) throw new Error('HTTP ' + res.status);
+				const users = await res.json();
+				renderUsers(users || []);
+			} catch(err){ document.getElementById('usersContainer').innerHTML = '<div class="muted">Error loading users: '+err+'</div>'; }
+		}
+
+		function renderUsers(users){
+			const c = document.getElementById('usersContainer');
+			if (!Array.isArray(users) || users.length === 0) { c.innerHTML = '<div class="muted">No users found</div>'; return; }
+			// keep a copy for modal lookups
+			window._users = users;
+			let html = '<table><thead><tr><th>ID</th><th>Full name</th><th>Email</th><th>Phone</th><th>Role</th><th>Actions</th></tr></thead><tbody>';
+			users.forEach(u=>{
+				const id = u.id || u.Id || u.ID;
+				const avatar = u.avatarUrl || u.avatar || u.Avatar_URL || '';
+				const status = (u.status || u.Status || '') + '';
+				const role = u.role || u.Role || '';
+				// status badge styles
+				let badgeColor = '#999'; // pending/none
+				if ((status||'').toLowerCase() === 'active') badgeColor = '#2e7d32';
+				if ((status||'').toLowerCase() === 'blocked') badgeColor = '#c62828';
+				const badgeHtml = `<div style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:12px;background:${badgeColor};color:#fff;font-size:12px;vertical-align:middle">${escapeHtml(status|| (role? 'Active' : ''))}</div>`;
+				const disabledAttr = ((status||'').toLowerCase() === 'blocked') ? 'disabled' : '';
+				html += `<tr data-uid="${id}"><td>${id}</td><td><div style="display:flex;align-items:center;gap:8px"><img src="${escapeHtml(avatar || DEFAULT_AVATAR)}" style="width:40px;height:40px;border-radius:50%"/> ${escapeHtml(u.fullName||u.fullname||u.FullName||'')}</div></td><td>${escapeHtml(u.email||'')}</td><td>${escapeHtml(u.phone||'')}</td><td>${escapeHtml(role||'')}${badgeHtml}</td><td><button class="btn" data-action="edit-user" ${disabledAttr}>Edit</button> <button class="btn btn-danger" data-action="delete-user" ${disabledAttr}>Delete</button></td></tr>`;
+			});
+			html += '</tbody></table>';
+			c.innerHTML = html;
+			// attach handlers
+			document.querySelectorAll('button[data-action="edit-user"]').forEach(b=> b.addEventListener('click', e=>{
+				const id = e.target.closest('tr').dataset.uid; const row = e.target.closest('tr');
+				const usersList = window._users || [];
+				const user = usersList.find(x=> String(x.id||x.ID) === String(id));
+				openUserModal(user || { id: id });
+			}));
+			document.querySelectorAll('button[data-action="delete-user"]').forEach(b=> b.addEventListener('click', async e=>{
+				const id = e.target.closest('tr').dataset.uid; if (!confirm('Delete user '+id+'?')) return;
+				try { const res = await fetch(API_USERS + '?id=' + encodeURIComponent(id), { method: 'DELETE', credentials: 'include', headers: getAuthHeaders() }); if (!res.ok) throw new Error('HTTP '+res.status); fetchUsers(); } catch(err){ alert('Delete failed: '+err); }
+			}));
+		}
+
+		function openUserModal(user){
+			document.getElementById('userModalTitle').innerText = user && user.id ? 'Edit User: ' + user.id : 'Create Staff';
+			document.getElementById('uFullName').value = user.fullName || user.fullname || '';
+			document.getElementById('uEmail').value = user.email || '';
+			document.getElementById('uPhone').value = user.phone || '';
+			document.getElementById('uRole').value = user.role || 'Staff';
+			document.getElementById('userModal').dataset.userId = user.id || '';
+			document.getElementById('uStatus').value = user.status || user.Status || '';
+			// show inline status notice and disable actions if Blocked or None
+			try {
+				let notice = document.getElementById('uStatusNotice');
+				if (!notice) {
+					notice = document.createElement('div');
+					notice.id = 'uStatusNotice';
+					notice.style.marginTop = '6px';
+					notice.style.fontSize = '13px';
+					notice.style.color = '#333';
+					document.getElementById('uStatus').parentElement.appendChild(notice);
+				}
+				const st = (user.status || user.Status || '').toString().toLowerCase();
+				if (st === 'blocked') {
+					notice.innerText = 'Tài khoản này đang bị khóa — không thể thực hiện hành động';
+					notice.style.color = '#c62828';
+					document.getElementById('saveUserBtn').disabled = true;
+					document.getElementById('deleteUserBtn').disabled = true;
+					document.getElementById('resetPasswordBtn').disabled = true;
+				} else if (!st || st === 'none' || st === '(none)') {
+					notice.innerText = 'Tài khoản chưa kích hoạt — hãy yêu cầu hoàn tất đăng ký/verify';
+					notice.style.color = '#777';
+					document.getElementById('saveUserBtn').disabled = true; // require activation first
+					document.getElementById('deleteUserBtn').disabled = false; // allow delete
+					document.getElementById('resetPasswordBtn').disabled = true;
+				} else {
+					notice.innerText = '';
+					document.getElementById('saveUserBtn').disabled = false;
+					document.getElementById('deleteUserBtn').disabled = false;
+					document.getElementById('resetPasswordBtn').disabled = false;
+				}
+			} catch(e) {}
+			// populate station select from loaded stations
+			try {
+				const sel = document.getElementById('uStationId');
+				if (sel) {
+					sel.innerHTML = '<option value="">-- Select station --</option>';
+					const stations = window._stations || [];
+					stations.forEach(s => {
+						const id = s.Station_ID || s.StationId || s.id || s.ID;
+						const name = s.Name || s.name || ('Station ' + id);
+						const opt = document.createElement('option'); opt.value = id; opt.text = name; sel.appendChild(opt);
+					});
+					// set selected value if present on user
+					if (user && (user.stationId || user.Station_ID || user.StationId)) sel.value = user.stationId || user.Station_ID || user.StationId;
+				}
+			} catch(e) {}
+			document.getElementById('uAvatar').value = user.avatarUrl || user.avatar || user.Avatar_URL || '';
+			const preview = document.getElementById('uAvatarPreview');
+			if (preview) { const val = document.getElementById('uAvatar').value && document.getElementById('uAvatar').value.trim(); preview.src = val ? val : DEFAULT_AVATAR; preview.style.display = 'inline-block'; }
+			document.getElementById('deleteUserBtn').style.display = user && user.id ? 'inline-block' : 'none';
+			document.getElementById('resetPasswordBtn').style.display = user && user.id ? 'inline-block' : 'none';
+			// disable role change if editing an Admin user
+			try {
+				const roleSel = document.getElementById('uRole');
+				if (roleSel) {
+					if (user && (user.role||user.Role||'').toString().toLowerCase() === 'admin') {
+						roleSel.disabled = true;
+						// hide station selector for admins
+						document.getElementById('uStationId').parentElement.style.display = 'none';
+					} else {
+						roleSel.disabled = false;
+						document.getElementById('uStationId').parentElement.style.display = '';
+					}
+				}
+			} catch(e) {}
+			document.getElementById('userModal').style.display = 'flex';
+		}
+
+		document.getElementById('closeUserModal').addEventListener('click', ()=>{ document.getElementById('userModal').style.display = 'none'; });
+
+		document.getElementById('createStaffBtn').addEventListener('click', ()=> openUserModal({}));
+
+		document.getElementById('filterUsers').addEventListener('click', ()=> fetchUsers());
+
+		document.getElementById('uAvatar').addEventListener('input', (e)=>{
+			const preview = document.getElementById('uAvatarPreview');
+			if (!preview) return;
+			const v = e.target.value && e.target.value.trim();
+			preview.src = v ? v : DEFAULT_AVATAR;
+			preview.style.display = 'inline-block';
+		});
+
+		// file input preview
+		document.getElementById('uAvatarFile').addEventListener('change', (e)=>{
+			const f = e.target.files && e.target.files[0];
+			const preview = document.getElementById('uAvatarPreview');
+			if (!preview) return;
+			if (!f) { preview.src = DEFAULT_AVATAR; return; }
+			const reader = new FileReader();
+			reader.onload = function(ev){ preview.src = ev.target.result; };
+			reader.readAsDataURL(f);
+		});
+
+		// switch mode enable/disable
+		document.querySelectorAll('input[name="avatarMode"]').forEach(r=> r.addEventListener('change', ()=>{
+			const mode = document.querySelector('input[name="avatarMode"]:checked').value;
+			document.getElementById('uAvatar').disabled = (mode!=='url');
+			document.getElementById('uAvatarFile').disabled = (mode!=='upload');
+		}));
+
+		document.getElementById('saveUserBtn').addEventListener('click', async ()=>{
+			const id = document.getElementById('userModal').dataset.userId || 0;
+			const fullName = document.getElementById('uFullName').value.trim();
+			const email = document.getElementById('uEmail').value.trim();
+			const phone = document.getElementById('uPhone').value.trim();
+			const role = document.getElementById('uRole').value;
+			const status = document.getElementById('uStatus').value || '';
+			const avatar = document.getElementById('uAvatar').value.trim() || '';
+			const stationId = document.getElementById('uStationId') ? document.getElementById('uStationId').value : '';
+			const password = document.getElementById('uPassword') ? document.getElementById('uPassword').value : '';
+			if (!fullName || !email) { alert('Name and email required'); return; }
+			try {
+				const method = id && Number(id) > 0 ? 'PUT' : 'POST';
+				const url = API_USERS;
+				// determine avatar mode: url or upload
+				const mode = document.querySelector('input[name="avatarMode"]:checked') ? document.querySelector('input[name="avatarMode"]:checked').value : 'url';
+				let res;
+                    if (mode === 'upload' && document.getElementById('uAvatarFile').files && document.getElementById('uAvatarFile').files.length > 0) {
+					const fd = new FormData();
+					fd.append('id', Number(id||0));
+					fd.append('fullName', fullName);
+					fd.append('email', email);
+					fd.append('phone', phone);
+					fd.append('role', role);
+					fd.append('status', status);
+					if (stationId) fd.append('stationId', stationId);
+					if (password && password.length > 0) fd.append('password', password);
+					const file = document.getElementById('uAvatarFile').files[0];
+					fd.append('avatarFile', file, file.name);
+					// send multipart; do NOT set Content-Type so browser sets boundary
+					const headers = getAuthHeaders(); delete headers['Content-Type'];
+					res = await fetch(url, { method: method, credentials: 'include', headers: headers, body: fd });
+				} else {
+					const body = { id: Number(id||0), fullName: fullName, email: email, phone: phone, role: role, status: status, avatarUrl: avatar };
+					if (stationId) body.stationId = Number(stationId);
+					if (password && password.length > 0) body.password = password;
+					res = await fetch(url, { method: method, credentials: 'include', headers: Object.assign({'Content-Type':'application/json'}, getAuthHeaders()), body: JSON.stringify(body) });
+				}
+				if (!res.ok) throw new Error('HTTP '+res.status);
+				document.getElementById('userModal').style.display = 'none';
+				fetchUsers();
+			} catch(err){
+				try {
+					const msg = err && err.message ? err.message : String(err);
+					const ml = (msg || '').toLowerCase();
+					// if server indicates duplicate email or phone, show Vietnamese friendly messages
+					if (ml.includes('email') || ml.includes('email đã tồn tại') || ml.includes('không thể tạo staff do email')) {
+						alert('Không thể tạo Staff do email đã tồn tại');
+					} else if (ml.includes('phone') || ml.includes('số điện thoại') || ml.includes('không thể tạo staff do số điện thoại')) {
+						alert('Không thể tạo Staff do số điện thoại đã tồn tại');
+					} else {
+						alert('Save user failed: ' + msg);
+					}
+				} catch(e2) { alert('Save user failed: ' + err); }
+			}
+		});
+
+		document.getElementById('deleteUserBtn').addEventListener('click', async ()=>{
+			const id = document.getElementById('userModal').dataset.userId; if (!id) return; if (!confirm('Delete user '+id+'?')) return;
+			try { const res = await fetch(API_USERS + '?id=' + encodeURIComponent(id), { method: 'DELETE', credentials: 'include', headers: getAuthHeaders() }); if (!res.ok) throw new Error('HTTP '+res.status); document.getElementById('userModal').style.display = 'none'; fetchUsers(); } catch(err){ alert('Delete failed: '+err); }
+		});
+
+		document.getElementById('resetPasswordBtn').addEventListener('click', async ()=>{
+			const id = document.getElementById('userModal').dataset.userId; if (!id) return; if (!confirm('Reset password for user '+id+' to default?')) return;
+			try {
+				const defaultPwd = 'ChangeMe123!';
+				// set password field and trigger save (PUT)
+				document.getElementById('uPassword').value = defaultPwd;
+				const res = await fetch(API_USERS, { method: 'PUT', credentials: 'include', headers: Object.assign({'Content-Type':'application/json'}, getAuthHeaders()), body: JSON.stringify({ id: Number(id), password: defaultPwd }) });
+				if (!res.ok) throw new Error('HTTP '+res.status);
+				alert('Password reset to default: ' + defaultPwd);
+				document.getElementById('userModal').style.display = 'none';
+				fetchUsers();
+			} catch(err){ alert('Reset password failed: '+err); }
+		});
+
+		// expose users data for editing handler lookup
+		window._users = window._users || [];
+
+		// initial load: stations and users
 		fetchStations();
+		fetchUsers();
 	</script>
 </body>
 </html>
