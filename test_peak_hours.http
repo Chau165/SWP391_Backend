@@ -1,0 +1,51 @@
+### Test Peak Hour Statistics API
+### Thay YOUR_JWT_TOKEN bằng token thực của bạn
+
+### 1. Lấy tất cả khung giờ thống kê
+GET http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hours
+Authorization: Bearer YOUR_JWT_TOKEN
+Content-Type: application/json
+
+###
+
+### 2. Lấy tất cả khung giờ với filter theo ngày hôm nay (28/10/2025)
+GET http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hours?startDate=2025-10-28&endDate=2025-10-28
+Authorization: Bearer YOUR_JWT_TOKEN
+Content-Type: application/json
+
+###
+
+### 3. Lấy top 5 khung giờ cao điểm
+GET http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hours/top?limit=5
+Authorization: Bearer YOUR_JWT_TOKEN
+Content-Type: application/json
+
+###
+
+### 4. Lấy top 10 khung giờ cao điểm trong tháng 10
+GET http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hours/top?limit=10&startDate=2025-10-01&endDate=2025-10-31
+Authorization: Bearer YOUR_JWT_TOKEN
+Content-Type: application/json
+
+###
+
+### 5. Thống kê giờ cao điểm của Station ID = 1
+GET http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hours/station?stationId=1
+Authorization: Bearer YOUR_JWT_TOKEN
+Content-Type: application/json
+
+###
+
+### 6. Thống kê giờ cao điểm của Station ID = 1 trong tháng 10
+GET http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hours/station?stationId=1&startDate=2025-10-01&endDate=2025-10-31
+Authorization: Bearer YOUR_JWT_TOKEN
+Content-Type: application/json
+
+###
+
+### 7. Thống kê giờ cao điểm hôm nay cho Station ID = 1
+GET http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hours/station?stationId=1&startDate=2025-10-28&endDate=2025-10-28
+Authorization: Bearer YOUR_JWT_TOKEN
+Content-Type: application/json
+
+###
