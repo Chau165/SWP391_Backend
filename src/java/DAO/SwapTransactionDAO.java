@@ -1,6 +1,7 @@
 package DAO;
 
 import DTO.SwapTransaction;
+import DTO.PeakHourStatistics;
 import mylib.DBUtils;
 
 import java.sql.*;
@@ -248,5 +249,214 @@ public class SwapTransactionDAO {
         tx.setBooking_ID(bookingId);
 
         return tx;
+    }
+
+    // ===== Thống kê giờ cao điểm =====
+    /**
+     * Thống kê số lượt đổi pin và doanh thu theo các khung giờ trong ngày
+     * Chia 24 giờ thành 24 khung giờ (00:00-01:00, 01:00-02:00, ..., 23:00-00:00)
+     * @param startDate Ngày bắt đầu (có thể null để lấy tất cả)
+     * @param endDate Ngày kết thúc (có thể null để lấy tất cả)
+     * @return Danh sách thống kê theo từng khung giờ
+     */
+    public List<PeakHourStatistics> getPeakHourStatistics(Date startDate, Date endDate) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT ");
+        sql.append("    DATEPART(HOUR, Swap_Time) AS HourOfDay, ");
+        sql.append("    COUNT(*) AS SwapCount, ");
+        sql.append("    ISNULL(SUM(Fee), 0) AS TotalRevenue, ");
+        sql.append("    ISNULL(AVG(Fee), 0) AS AverageFee ");
+        sql.append("FROM dbo.SwapTransaction ");
+        sql.append("WHERE Status = 'Completed' ");
+        
+        if (startDate != null && endDate != null) {
+            sql.append("AND Swap_Time >= ? AND Swap_Time < DATEADD(DAY, 1, ?) ");
+        } else if (startDate != null) {
+            sql.append("AND Swap_Time >= ? ");
+        } else if (endDate != null) {
+            sql.append("AND Swap_Time < DATEADD(DAY, 1, ?) ");
+        }
+        
+        sql.append("GROUP BY DATEPART(HOUR, Swap_Time) ");
+        sql.append("ORDER BY HourOfDay");
+
+        List<PeakHourStatistics> stats = new ArrayList<>();
+        
+        try (Connection con = DBUtils.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql.toString())) {
+            
+            int paramIndex = 1;
+            if (startDate != null && endDate != null) {
+                ps.setDate(paramIndex++, startDate);
+                ps.setDate(paramIndex++, endDate);
+            } else if (startDate != null) {
+                ps.setDate(paramIndex++, startDate);
+            } else if (endDate != null) {
+                ps.setDate(paramIndex++, endDate);
+            }
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int hour = rs.getInt("HourOfDay");
+                    int swapCount = rs.getInt("SwapCount");
+                    double totalRevenue = rs.getDouble("TotalRevenue");
+                    double averageFee = rs.getDouble("AverageFee");
+                    
+                    String timeSlot = String.format("%02d:00-%02d:00", hour, (hour + 1) % 24);
+                    
+                    PeakHourStatistics stat = new PeakHourStatistics(
+                        timeSlot, 
+                        swapCount, 
+                        totalRevenue, 
+                        averageFee
+                    );
+                    stats.add(stat);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        return stats;
+    }
+
+    /**
+     * Thống kê giờ cao điểm theo Station_ID
+     * @param stationId ID của trạm
+     * @param startDate Ngày bắt đầu (có thể null)
+     * @param endDate Ngày kết thúc (có thể null)
+     * @return Danh sách thống kê theo từng khung giờ cho trạm cụ thể
+     */
+    public List<PeakHourStatistics> getPeakHourStatisticsByStation(int stationId, Date startDate, Date endDate) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT ");
+        sql.append("    DATEPART(HOUR, Swap_Time) AS HourOfDay, ");
+        sql.append("    COUNT(*) AS SwapCount, ");
+        sql.append("    ISNULL(SUM(Fee), 0) AS TotalRevenue, ");
+        sql.append("    ISNULL(AVG(Fee), 0) AS AverageFee ");
+        sql.append("FROM dbo.SwapTransaction ");
+        sql.append("WHERE Status = 'Completed' AND Station_ID = ? ");
+        
+        if (startDate != null && endDate != null) {
+            sql.append("AND Swap_Time >= ? AND Swap_Time < DATEADD(DAY, 1, ?) ");
+        } else if (startDate != null) {
+            sql.append("AND Swap_Time >= ? ");
+        } else if (endDate != null) {
+            sql.append("AND Swap_Time < DATEADD(DAY, 1, ?) ");
+        }
+        
+        sql.append("GROUP BY DATEPART(HOUR, Swap_Time) ");
+        sql.append("ORDER BY HourOfDay");
+
+        List<PeakHourStatistics> stats = new ArrayList<>();
+        
+        try (Connection con = DBUtils.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql.toString())) {
+            
+            int paramIndex = 1;
+            ps.setInt(paramIndex++, stationId);
+            
+            if (startDate != null && endDate != null) {
+                ps.setDate(paramIndex++, startDate);
+                ps.setDate(paramIndex++, endDate);
+            } else if (startDate != null) {
+                ps.setDate(paramIndex++, startDate);
+            } else if (endDate != null) {
+                ps.setDate(paramIndex++, endDate);
+            }
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int hour = rs.getInt("HourOfDay");
+                    int swapCount = rs.getInt("SwapCount");
+                    double totalRevenue = rs.getDouble("TotalRevenue");
+                    double averageFee = rs.getDouble("AverageFee");
+                    
+                    String timeSlot = String.format("%02d:00-%02d:00", hour, (hour + 1) % 24);
+                    
+                    PeakHourStatistics stat = new PeakHourStatistics(
+                        timeSlot, 
+                        swapCount, 
+                        totalRevenue, 
+                        averageFee
+                    );
+                    stats.add(stat);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        return stats;
+    }
+
+    /**
+     * Lấy top N khung giờ có nhiều giao dịch nhất
+     * @param topN Số lượng khung giờ muốn lấy
+     * @param startDate Ngày bắt đầu (có thể null)
+     * @param endDate Ngày kết thúc (có thể null)
+     * @return Danh sách top N khung giờ có nhiều giao dịch nhất
+     */
+    public List<PeakHourStatistics> getTopPeakHours(int topN, Date startDate, Date endDate) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT TOP (?) ");
+        sql.append("    DATEPART(HOUR, Swap_Time) AS HourOfDay, ");
+        sql.append("    COUNT(*) AS SwapCount, ");
+        sql.append("    ISNULL(SUM(Fee), 0) AS TotalRevenue, ");
+        sql.append("    ISNULL(AVG(Fee), 0) AS AverageFee ");
+        sql.append("FROM dbo.SwapTransaction ");
+        sql.append("WHERE Status = 'Completed' ");
+        
+        if (startDate != null && endDate != null) {
+            sql.append("AND Swap_Time >= ? AND Swap_Time < DATEADD(DAY, 1, ?) ");
+        } else if (startDate != null) {
+            sql.append("AND Swap_Time >= ? ");
+        } else if (endDate != null) {
+            sql.append("AND Swap_Time < DATEADD(DAY, 1, ?) ");
+        }
+        
+        sql.append("GROUP BY DATEPART(HOUR, Swap_Time) ");
+        sql.append("ORDER BY SwapCount DESC");
+
+        List<PeakHourStatistics> stats = new ArrayList<>();
+        
+        try (Connection con = DBUtils.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql.toString())) {
+            
+            int paramIndex = 1;
+            ps.setInt(paramIndex++, topN);
+            
+            if (startDate != null && endDate != null) {
+                ps.setDate(paramIndex++, startDate);
+                ps.setDate(paramIndex++, endDate);
+            } else if (startDate != null) {
+                ps.setDate(paramIndex++, startDate);
+            } else if (endDate != null) {
+                ps.setDate(paramIndex++, endDate);
+            }
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int hour = rs.getInt("HourOfDay");
+                    int swapCount = rs.getInt("SwapCount");
+                    double totalRevenue = rs.getDouble("TotalRevenue");
+                    double averageFee = rs.getDouble("AverageFee");
+                    
+                    String timeSlot = String.format("%02d:00-%02d:00", hour, (hour + 1) % 24);
+                    
+                    PeakHourStatistics stat = new PeakHourStatistics(
+                        timeSlot, 
+                        swapCount, 
+                        totalRevenue, 
+                        averageFee
+                    );
+                    stats.add(stat);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        return stats;
     }
 }
