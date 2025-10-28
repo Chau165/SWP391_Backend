@@ -1,9 +1,11 @@
 # API Thống Kê Giờ Cao Điểm (Peak Hour Statistics)
 
 ## Mô tả
+
 API này cung cấp các endpoint để thống kê giờ cao điểm của các giao dịch đổi pin (swap transactions) dựa trên cột `Swap_Time` trong bảng `SwapTransaction`.
 
 ## Authentication
+
 - Tất cả các endpoint đều yêu cầu JWT token trong header `Authorization`
 - Chỉ role **Admin** và **Staff** mới có quyền truy cập các API này
 
@@ -12,17 +14,20 @@ API này cung cấp các endpoint để thống kê giờ cao điểm của các
 ## 1. Lấy Thống Kê Tất Cả Khung Giờ
 
 ### Endpoint
+
 ```
 GET /api/secure/analytics/peak-hours
 ```
 
 ### Query Parameters
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| startDate | string | No | Ngày bắt đầu lọc (format: `yyyy-MM-dd`) |
-| endDate | string | No | Ngày kết thúc lọc (format: `yyyy-MM-dd`) |
+
+| Parameter | Type   | Required | Description                              |
+| --------- | ------ | -------- | ---------------------------------------- |
+| startDate | string | No       | Ngày bắt đầu lọc (format: `yyyy-MM-dd`)  |
+| endDate   | string | No       | Ngày kết thúc lọc (format: `yyyy-MM-dd`) |
 
 ### Response Success (200)
+
 ```json
 {
   "success": true,
@@ -53,6 +58,7 @@ GET /api/secure/analytics/peak-hours
 ```
 
 ### Ví dụ
+
 ```bash
 # Lấy thống kê tất cả thời gian
 curl -X GET "http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hours" \
@@ -68,18 +74,21 @@ curl -X GET "http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hour
 ## 2. Lấy Top N Khung Giờ Cao Điểm
 
 ### Endpoint
+
 ```
 GET /api/secure/analytics/peak-hours/top
 ```
 
 ### Query Parameters
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| limit | integer | No | Số lượng khung giờ muốn lấy (default: 5, max: 24) |
-| startDate | string | No | Ngày bắt đầu lọc (format: `yyyy-MM-dd`) |
-| endDate | string | No | Ngày kết thúc lọc (format: `yyyy-MM-dd`) |
+
+| Parameter | Type    | Required | Description                                       |
+| --------- | ------- | -------- | ------------------------------------------------- |
+| limit     | integer | No       | Số lượng khung giờ muốn lấy (default: 5, max: 24) |
+| startDate | string  | No       | Ngày bắt đầu lọc (format: `yyyy-MM-dd`)           |
+| endDate   | string  | No       | Ngày kết thúc lọc (format: `yyyy-MM-dd`)          |
 
 ### Response Success (200)
+
 ```json
 {
   "success": true,
@@ -120,6 +129,7 @@ GET /api/secure/analytics/peak-hours/top
 ```
 
 ### Ví dụ
+
 ```bash
 # Lấy top 5 khung giờ cao điểm (mặc định)
 curl -X GET "http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hours/top" \
@@ -135,18 +145,21 @@ curl -X GET "http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hour
 ## 3. Thống Kê Giờ Cao Điểm Theo Trạm
 
 ### Endpoint
+
 ```
 GET /api/secure/analytics/peak-hours/station
 ```
 
 ### Query Parameters
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| stationId | integer | **Yes** | ID của trạm cần thống kê |
-| startDate | string | No | Ngày bắt đầu lọc (format: `yyyy-MM-dd`) |
-| endDate | string | No | Ngày kết thúc lọc (format: `yyyy-MM-dd`) |
+
+| Parameter | Type    | Required | Description                              |
+| --------- | ------- | -------- | ---------------------------------------- |
+| stationId | integer | **Yes**  | ID của trạm cần thống kê                 |
+| startDate | string  | No       | Ngày bắt đầu lọc (format: `yyyy-MM-dd`)  |
+| endDate   | string  | No       | Ngày kết thúc lọc (format: `yyyy-MM-dd`) |
 
 ### Response Success (200)
+
 ```json
 {
   "success": true,
@@ -178,6 +191,7 @@ GET /api/secure/analytics/peak-hours/station
 ```
 
 ### Response Error
+
 ```json
 {
   "success": false,
@@ -186,6 +200,7 @@ GET /api/secure/analytics/peak-hours/station
 ```
 
 ### Ví dụ
+
 ```bash
 # Thống kê giờ cao điểm cho trạm ID = 1
 curl -X GET "http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hours/station?stationId=1" \
@@ -201,22 +216,24 @@ curl -X GET "http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hour
 ## Giải Thích Dữ Liệu Trả Về
 
 ### Response Fields
-| Field | Type | Description |
-|-------|------|-------------|
-| success | boolean | Trạng thái thành công của request |
-| totalSlots | integer | Tổng số khung giờ có dữ liệu |
-| peakHour | string | Khung giờ có nhiều giao dịch nhất |
-| peakHourSwapCount | integer | Số lượng giao dịch ở khung giờ cao điểm |
-| timeSlot | string | Khung giờ (format: "HH:00-HH:00") |
-| swapCount | integer | Số lượng giao dịch đổi pin trong khung giờ |
-| totalRevenue | double | Tổng doanh thu trong khung giờ (VNĐ) |
-| averageFee | double | Phí trung bình mỗi giao dịch (VNĐ) |
+
+| Field             | Type    | Description                                |
+| ----------------- | ------- | ------------------------------------------ |
+| success           | boolean | Trạng thái thành công của request          |
+| totalSlots        | integer | Tổng số khung giờ có dữ liệu               |
+| peakHour          | string  | Khung giờ có nhiều giao dịch nhất          |
+| peakHourSwapCount | integer | Số lượng giao dịch ở khung giờ cao điểm    |
+| timeSlot          | string  | Khung giờ (format: "HH:00-HH:00")          |
+| swapCount         | integer | Số lượng giao dịch đổi pin trong khung giờ |
+| totalRevenue      | double  | Tổng doanh thu trong khung giờ (VNĐ)       |
+| averageFee        | double  | Phí trung bình mỗi giao dịch (VNĐ)         |
 
 ---
 
 ## Error Responses
 
 ### 401 Unauthorized
+
 ```json
 {
   "success": false,
@@ -225,6 +242,7 @@ curl -X GET "http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hour
 ```
 
 ### 403 Forbidden
+
 ```json
 {
   "success": false,
@@ -233,6 +251,7 @@ curl -X GET "http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hour
 ```
 
 ### 400 Bad Request
+
 ```json
 {
   "success": false,
@@ -241,6 +260,7 @@ curl -X GET "http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hour
 ```
 
 ### 500 Internal Server Error
+
 ```json
 {
   "success": false,
@@ -253,25 +273,33 @@ curl -X GET "http://localhost:8080/SWP391_Backend/api/secure/analytics/peak-hour
 ## Use Cases
 
 ### 1. Phân Tích Giờ Cao Điểm Toàn Hệ Thống
+
 Admin có thể xem tổng quan các khung giờ có lượng giao dịch cao để:
+
 - Lên kế hoạch staffing
 - Chuẩn bị inventory pin
 - Tối ưu hóa chiến dịch marketing
 
 ### 2. So Sánh Hiệu Suất Trạm
+
 Admin có thể so sánh giờ cao điểm giữa các trạm khác nhau để:
+
 - Phân bổ tài nguyên hợp lý
 - Xác định trạm hoạt động hiệu quả
 - Điều chỉnh giờ làm việc của staff
 
 ### 3. Dashboard Realtime
+
 Frontend có thể sử dụng API này để hiển thị:
+
 - Biểu đồ cột thể hiện số lượng giao dịch theo giờ
 - Biểu đồ line chart cho doanh thu theo giờ
 - Heatmap cho các khung giờ cao điểm trong tuần/tháng
 
 ### 4. Báo Cáo Định Kỳ
+
 Tự động generate báo cáo hàng tuần/tháng về:
+
 - Các khung giờ có performance tốt nhất
 - Xu hướng thay đổi qua thời gian
 - So sánh với chu kỳ trước
@@ -290,10 +318,13 @@ Tự động generate báo cáo hàng tuần/tháng về:
 ## Testing
 
 ### Postman Collection
+
 Import file `peak-hour-statistics.postman_collection.json` để test các endpoint.
 
 ### Sample Data
+
 Đảm bảo database có dữ liệu trong bảng `SwapTransaction` với:
+
 - Cột `Swap_Time` có giá trị
 - `Status = 'Completed'`
 - Có giao dịch ở nhiều khung giờ khác nhau
@@ -303,6 +334,7 @@ Import file `peak-hour-statistics.postman_collection.json` để test các endpo
 ## Changelog
 
 ### Version 1.0.0 (2025-10-28)
+
 - ✅ Thêm endpoint thống kê tất cả khung giờ
 - ✅ Thêm endpoint lấy top N khung giờ cao điểm
 - ✅ Thêm endpoint thống kê theo trạm
