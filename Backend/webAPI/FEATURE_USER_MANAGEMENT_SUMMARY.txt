@@ -1,0 +1,23 @@
+Feature: User Management — Admin unblock, onboarding, avatar fixes, Swagger
+
+Summary of changes (branch: feature/user-management)
+
+What changed:
+- Frontend: web/admin/index.html
+  - Allow edit of blocked users; confirm unblock; default admin-created users to Active; support avatar via URL or file upload; surface server JSON error hints.
+
+- Backend:
+  - UsersAdminController: force Status='Active' for admin-created users; log Blocked -> Active transitions; validate avatar URL schemes; improved 403 hints.
+  - UpdateProfileController: validate avatar URL schemes.
+  - EmailUtil: avoid emailing raw temporary passwords; prefer no-password onboarding text.
+  - SwaggerConfigServlet: expanded openapi.json with endpoints grouped per role and added BearerAuth.
+
+Build:
+- Fixed Java compatibility (removed Map.of usage) and confirmed Ant build succeeded and produced a WAR.
+
+Pending:
+- Runtime verification on Tomcat (avatar upload/url, onboarding flow, DB Status checks).
+- Decide whether to archive/delete Backend/webAPI/scripts/ (untracked).
+- Consider DB audit for unblock events.
+
+All source edits were committed and pushed to origin/feature-user-management.
