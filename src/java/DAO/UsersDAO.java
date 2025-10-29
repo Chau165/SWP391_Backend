@@ -10,6 +10,19 @@ import mylib.DBUtils;
 
 public class UsersDAO {
 
+    public boolean updatePasswordIfStaffOrManager(int userId, String newPassword) {
+        String sql = "UPDATE Users SET Password = ? WHERE ID = ? AND Role IN ('Staff','Manager')";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newPassword);
+            ps.setInt(2, userId);
+            int affected = ps.executeUpdate();
+            return affected > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     public Users checkLogin(String email, String password) {
         Users user = null;
         String query = "SELECT ID, FullName, Phone, Email, Password, Role, Status, Station_ID "
