@@ -82,7 +82,7 @@
 		<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
 			<div>
 				<input id="userSearch" placeholder="Search by name or email" style="width:320px;padding:6px" />
-				<select id="roleFilter" style="margin-left:8px;padding:6px"><option value="">All Roles</option><option value="Staff">Staff</option><option value="Admin">Admin</option></select>
+				<select id="roleFilter" style="margin-left:8px;padding:6px"><option value="">All Roles</option><option value="Staff">Staff</option><option value="Manager">Manager</option><option value="Admin">Admin</option></select>
 				<button id="filterUsers" class="btn">Filter</button>
 			</div>
 			<div>
@@ -103,7 +103,7 @@
 			<div style="margin-bottom:8px"><label>Email</label><br/><input id="uEmail" style="width:100%;padding:6px"/></div>
 			<div style="margin-bottom:8px"><label>Phone</label><br/><input id="uPhone" style="width:100%;padding:6px"/></div>
 			<div style="margin-bottom:8px"><label>Role</label><br/>
-				<select id="uRole" style="width:100%;padding:6px"><option value="Staff">Staff</option><option value="Admin">Admin</option></select>
+				<select id="uRole" style="width:100%;padding:6px"><option value="Staff">Staff</option><option value="Manager">Manager</option><option value="Admin">Admin</option></select>
 			</div>
 			<div style="margin-bottom:8px"><label>Station (required for Staff)</label><br/>
 				<select id="uStationId" style="width:100%;padding:6px"><option value="">-- Select station --</option></select>
@@ -359,7 +359,19 @@
 						const form = new URLSearchParams(); form.append('action','delete'); form.append('id', cid);
 						res = await fetch(BASE + '/admin/charging', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
 					}
-					if (!res.ok) throw new Error('HTTP '+res.status);
+					if (!res.ok) {
+						// try to read JSON error body to show a friendly message
+						let text = await res.text();
+						try {
+							const obj = JSON.parse(text);
+							const errMsg = obj && (obj.error || obj.message) ? (obj.error || obj.message) : (obj.status || text || ('HTTP '+res.status));
+							// include hint if present for debugging (non-sensitive)
+							const hint = obj && obj.hint ? (' (hint: ' + JSON.stringify(obj.hint) + ')') : '';
+							throw new Error(errMsg + hint);
+						} catch(eparse) {
+							throw new Error(text || ('HTTP '+res.status));
+						}
+					}
 					fetchStations();
 				} catch (err) { alert('CS delete failed: '+err); }
 			}));
@@ -578,8 +590,8 @@
 				if ((status||'').toLowerCase() === 'active') badgeColor = '#2e7d32';
 				if ((status||'').toLowerCase() === 'blocked') badgeColor = '#c62828';
 				const badgeHtml = `<div style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:12px;background:${badgeColor};color:#fff;font-size:12px;vertical-align:middle">${escapeHtml(status|| (role? 'Active' : ''))}</div>`;
-				const disabledAttr = ((status||'').toLowerCase() === 'blocked') ? 'disabled' : '';
-				html += `<tr data-uid="${id}"><td>${id}</td><td><div style="display:flex;align-items:center;gap:8px"><img src="${escapeHtml(avatar || DEFAULT_AVATAR)}" style="width:40px;height:40px;border-radius:50%"/> ${escapeHtml(u.fullName||u.fullname||u.FullName||'')}</div></td><td>${escapeHtml(u.email||'')}</td><td>${escapeHtml(u.phone||'')}</td><td>${escapeHtml(role||'')}${badgeHtml}</td><td><button class="btn" data-action="edit-user" ${disabledAttr}>Edit</button> <button class="btn btn-danger" data-action="delete-user" ${disabledAttr}>Delete</button></td></tr>`;
+				// allow Edit/Delete for blocked users as well (admins must be able to unblock)
+				html += `<tr data-uid="${id}"><td>${id}</td><td><div style="display:flex;align-items:center;gap:8px"><img src="${escapeHtml(avatar || DEFAULT_AVATAR)}" style="width:40px;height:40px;border-radius:50%"/> ${escapeHtml(u.fullName||u.fullname||u.FullName||'')}</div></td><td>${escapeHtml(u.email||'')}</td><td>${escapeHtml(u.phone||'')}</td><td>${escapeHtml(role||'')}${badgeHtml}</td><td><button class="btn" data-action="edit-user">Edit</button> <button class="btn btn-danger" data-action="delete-user">Delete</button></td></tr>`;
 			});
 			html += '</tbody></table>';
 			c.innerHTML = html;
@@ -603,8 +615,11 @@
 			document.getElementById('uPhone').value = user.phone || '';
 			document.getElementById('uRole').value = user.role || 'Staff';
 			document.getElementById('userModal').dataset.userId = user.id || '';
-			document.getElementById('uStatus').value = user.status || user.Status || '';
-			// show inline status notice and disable actions if Blocked or None
+			// default status: if creating a new user from admin UI, default to Active so admin-created accounts are active immediately
+			let statusVal = user.status || user.Status || '';
+			if (!user || !user.id) statusVal = statusVal || 'Active';
+			document.getElementById('uStatus').value = statusVal;
+			// show inline status notice and disable actions if Blocked or None (only for existing users)
 			try {
 				let notice = document.getElementById('uStatusNotice');
 				if (!notice) {
@@ -615,17 +630,27 @@
 					notice.style.color = '#333';
 					document.getElementById('uStatus').parentElement.appendChild(notice);
 				}
-				const st = (user.status || user.Status || '').toString().toLowerCase();
-				if (st === 'blocked') {
-					notice.innerText = 'Tài khoản này đang bị khóa — không thể thực hiện hành động';
-					notice.style.color = '#c62828';
-					document.getElementById('saveUserBtn').disabled = true;
-					document.getElementById('deleteUserBtn').disabled = true;
+				// compute current status from the value we set above (handles new user default)
+				const st = (document.getElementById('uStatus').value || '').toString().toLowerCase();
+				// store original status for unblock confirmation when saving
+				document.getElementById('userModal').dataset.originalStatus = st || '';
+				// If creating a new user (no id), do not block Save for missing/none status — admin-created accounts should be Active
+				if (!user || !user.id) {
+					notice.innerText = '';
+					document.getElementById('saveUserBtn').disabled = false;
+					document.getElementById('deleteUserBtn').disabled = true; // nothing to delete yet
 					document.getElementById('resetPasswordBtn').disabled = true;
+				} else if (st === 'blocked') {
+					notice.innerText = 'Tài khoản này đang bị khóa — Admin có thể mở khóa bằng cách thay đổi trạng thái thành Active';
+					notice.style.color = '#c62828';
+					// allow admins to perform unblock via this UI (buttons remain enabled)
+					document.getElementById('saveUserBtn').disabled = false;
+					document.getElementById('deleteUserBtn').disabled = false;
+					document.getElementById('resetPasswordBtn').disabled = false;
 				} else if (!st || st === 'none' || st === '(none)') {
 					notice.innerText = 'Tài khoản chưa kích hoạt — hãy yêu cầu hoàn tất đăng ký/verify';
 					notice.style.color = '#777';
-					document.getElementById('saveUserBtn').disabled = true; // require activation first
+					document.getElementById('saveUserBtn').disabled = true; // require activation first for existing self-registered users
 					document.getElementById('deleteUserBtn').disabled = false; // allow delete
 					document.getElementById('resetPasswordBtn').disabled = true;
 				} else {
@@ -660,13 +685,17 @@
 				const roleSel = document.getElementById('uRole');
 				if (roleSel) {
 					if (user && (user.role||user.Role||'').toString().toLowerCase() === 'admin') {
+						// keep admin role immutable via this UI
 						roleSel.disabled = true;
-						// hide station selector for admins
-						document.getElementById('uStationId').parentElement.style.display = 'none';
 					} else {
 						roleSel.disabled = false;
-						document.getElementById('uStationId').parentElement.style.display = '';
 					}
+					// hide station selector for Admin and Manager (both don't have Station_ID)
+					try {
+						const ur = (user && (user.role||user.Role||'') || '').toString().toLowerCase();
+						if (ur === 'admin' || ur === 'manager') document.getElementById('uStationId').parentElement.style.display = 'none';
+						else document.getElementById('uStationId').parentElement.style.display = '';
+					} catch(e) { /* ignore */ }
 				}
 			} catch(e) {}
 			document.getElementById('userModal').style.display = 'flex';
@@ -716,6 +745,11 @@
 			const password = document.getElementById('uPassword') ? document.getElementById('uPassword').value : '';
 			if (!fullName || !email) { alert('Name and email required'); return; }
 			try {
+				// if original status was 'blocked' and admin is setting to 'Active', ask for confirmation
+				const orig = (document.getElementById('userModal').dataset.originalStatus || '').toString().toLowerCase();
+				if (orig === 'blocked' && (status||'').toString().toLowerCase() === 'active') {
+					if (!confirm('Are you sure you want to unblock this user?')) return;
+				}
 				const method = id && Number(id) > 0 ? 'PUT' : 'POST';
 				const url = API_USERS;
 				// determine avatar mode: url or upload

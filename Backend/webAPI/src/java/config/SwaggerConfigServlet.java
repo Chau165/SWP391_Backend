@@ -134,9 +134,129 @@ public class SwaggerConfigServlet extends HttpServlet {
             out.println("          \"204\": { \"description\": \"Không có trạm nào\" }");
             out.println("        }");
             out.println("      }");
-            out.println("    }");
+            out.println("    },");
 
-            out.println("  }");
+            // ------------------ Guest (public) ------------------
+            // Guest can view packages, stations, health
+            out.println("    \"/api/health\": {\n" +
+                        "      \"get\": {\n" +
+                        "        \"summary\": \"Health check\",\n" +
+                        "        \"responses\": { \"200\": { \"description\": \"OK\" } }\n" +
+                        "      }\n" +
+                        "    },");
+
+            // ------------------ Driver endpoints ------------------
+            out.println("    \"/api/driver/swap\": {");
+            out.println("      \"post\": {");
+            out.println("        \"summary\": \"Yêu cầu đổi pin (Driver)\",");
+            out.println("        \"description\": \"Driver gửi yêu cầu đổi pin tại một trạm (tự động hoặc theo stationId)\",");
+            out.println("        \"requestBody\": {\n" +
+                        "          \"required\": true,\n" +
+                        "          \"content\": {\n" +
+                        "            \"application/json\": {\n" +
+                        "              \"schema\": {\n" +
+                        "                \"type\": \"object\",\n" +
+                        "                \"properties\": {\n" +
+                        "                  \"driverId\": { \"type\": \"integer\" },\n" +
+                        "                  \"stationId\": { \"type\": \"integer\" },\n" +
+                        "                  \"packageId\": { \"type\": \"integer\" }\n" +
+                        "                },\n" +
+                        "                \"required\": [\"driverId\", \"packageId\"]\n" +
+                        "              }\n" +
+                        "            }\n" +
+                        "          }\n" +
+                        "        },");
+            out.println("        \"responses\": { \"201\": { \"description\": \"Swap requested\" }, \"400\": { \"description\": \"Invalid request\" }, \"403\": { \"description\": \"Forbidden\" } }" );
+            out.println("      }" );
+            out.println("    },");
+
+            out.println("    \"/api/driver/history\": {\n" +
+                        "      \"get\": {\n" +
+                        "        \"summary\": \"Lịch sử đổi pin của Driver\",\n" +
+                        "        \"parameters\": [ { \"name\": \"driverId\", \"in\": \"query\", \"schema\": { \"type\": \"integer\" }, \"required\": true } ],\n" +
+                        "        \"responses\": { \"200\": { \"description\": \"Danh sách lịch sử\" }, \"204\": { \"description\": \"Không có dữ liệu\" } }\n" +
+                        "      }\n" +
+                        "    },");
+
+            out.println("    \"/api/profile\": {\n" +
+                        "      \"get\": {\n" +
+                        "        \"summary\": \"Lấy profile người dùng\",\n" +
+                        "        \"parameters\": [ { \"name\": \"userId\", \"in\": \"query\", \"schema\": { \"type\": \"integer\" }, \"required\": true } ],\n" +
+                        "        \"responses\": { \"200\": { \"description\": \"Thông tin profile\" }, \"404\": { \"description\": \"Không tìm thấy user\" } }\n" +
+                        "      },\n" +
+                        "      \"put\": {\n" +
+                        "        \"summary\": \"Cập nhật profile (Driver/Staff/Admin)\",\n" +
+                        "        \"requestBody\": { \"required\": true, \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\", \"properties\": { \"userId\": { \"type\": \"integer\" }, \"fullName\": { \"type\": \"string\" }, \"phone\": { \"type\": \"string\" }, \"avatarUrl\": { \"type\": \"string\" } }, \"required\": [\"userId\"] } } } },\n" +
+                        "        \"responses\": { \"200\": { \"description\": \"Updated\" }, \"400\": { \"description\": \"Invalid\" }, \"403\": { \"description\": \"Forbidden\" } }\n" +
+                        "      }\n" +
+                        "    },");
+
+            // ------------------ Staff endpoints ------------------
+            out.println("    \"/api/staff/assigned\": {\n" +
+                        "      \"get\": {\n" +
+                        "        \"summary\": \"Danh sách nhiệm vụ được giao cho Staff\",\n" +
+                        "        \"parameters\": [ { \"name\": \"staffId\", \"in\": \"query\", \"schema\": { \"type\": \"integer\" }, \"required\": true } ],\n" +
+                        "        \"responses\": { \"200\": { \"description\": \"Danh sách nhiệm vụ\" }, \"204\": { \"description\": \"Không có nhiệm vụ\" } }\n" +
+                        "      }\n" +
+                        "    },");
+
+            out.println("    \"/api/staff/complete-swap\": {\n" +
+                        "      \"post\": {\n" +
+                        "        \"summary\": \"Đánh dấu hoàn thành đổi pin (Staff)\",\n" +
+                        "        \"requestBody\": { \"required\": true, \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\", \"properties\": { \"taskId\": { \"type\": \"integer\" }, \"staffId\": { \"type\": \"integer\" } }, \"required\": [\"taskId\",\"staffId\"] } } } },\n" +
+                        "        \"responses\": { \"200\": { \"description\": \"Completed\" }, \"400\": { \"description\": \"Invalid\" }, \"403\": { \"description\": \"Forbidden\" } }\n" +
+                        "      }\n" +
+                        "    },");
+
+            out.println("    \"/api/staff/station-status\": {\n" +
+                        "      \"get\": {\n" +
+                        "        \"summary\": \"Trạng thái trạm (Staff)\",\n" +
+                        "        \"parameters\": [ { \"name\": \"stationId\", \"in\": \"query\", \"schema\": { \"type\": \"integer\" } } ],\n" +
+                        "        \"responses\": { \"200\": { \"description\": \"Station status\" } }\n" +
+                        "      }\n" +
+                        "    },");
+
+            // ------------------ Admin endpoints ------------------
+            out.println("    \"/api/admin/users\": {\n" +
+                        "      \"get\": {\n" +
+                        "        \"summary\": \"Danh sách user (Admin)\",\n" +
+                        "        \"responses\": { \"200\": { \"description\": \"List of users\" } }\n" +
+                        "      },\n" +
+                        "      \"post\": {\n" +
+                        "        \"summary\": \"Tạo user mới (Admin)\",\n" +
+                        "        \"requestBody\": { \"required\": true, \"content\": { \"multipart/form-data\": { \"schema\": { \"type\": \"object\", \"properties\": { \"fullName\": { \"type\": \"string\" }, \"email\": { \"type\": \"string\" }, \"role\": { \"type\": \"string\" }, \"avatarFile\": { \"type\": \"string\", \"format\": \"binary\" } }, \"required\": [\"fullName\",\"email\"] } } } },\n" +
+                        "        \"responses\": { \"201\": { \"description\": \"Created\" }, \"400\": { \"description\": \"Invalid\" } }\n" +
+                        "      },\n" +
+                        "      \"put\": {\n" +
+                        "        \"summary\": \"Cập nhật user (Admin)\",\n" +
+                        "        \"requestBody\": { \"required\": true, \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\", \"properties\": { \"id\": { \"type\": \"integer\" }, \"fullName\": { \"type\": \"string\" }, \"status\": { \"type\": \"string\" } }, \"required\": [\"id\"] } } } },\n" +
+                        "        \"responses\": { \"200\": { \"description\": \"Updated\" }, \"403\": { \"description\": \"Forbidden\" } }\n" +
+                        "      },\n" +
+                        "      \"delete\": {\n" +
+                        "        \"summary\": \"Xóa user (Admin)\",\n" +
+                        "        \"parameters\": [ { \"name\": \"id\", \"in\": \"query\", \"schema\": { \"type\": \"integer\" }, \"required\": true } ],\n" +
+                        "        \"responses\": { \"200\": { \"description\": \"Deleted\" }, \"403\": { \"description\": \"Forbidden\" } }\n" +
+                        "      }\n" +
+                        "    },");
+
+            out.println("    \"/api/admin/stations\": {\n" +
+                        "      \"get\": { \"summary\": \"List stations (Admin)\", \"responses\": { \"200\": { \"description\": \"List\" } } },\n" +
+                        "      \"post\": { \"summary\": \"Create station\", \"responses\": { \"201\": { \"description\": \"Created\" } } }\n" +
+                        "    },");
+
+            out.println("    \"/api/admin/packages\": {\n" +
+                        "      \"get\": { \"summary\": \"List packages (Admin)\", \"responses\": { \"200\": { \"description\": \"List\" } } },\n" +
+                        "      \"post\": { \"summary\": \"Create package\", \"responses\": { \"201\": { \"description\": \"Created\" } } }\n" +
+                        "    }");
+
+            // close paths and add basic components for security (optional)
+            out.println("  },");
+            out.println("  \"components\": {\n" +
+                        "    \"securitySchemes\": {\n" +
+                        "      \"BearerAuth\": { \"type\": \"http\", \"scheme\": \"bearer\", \"bearerFormat\": \"JWT\" }\n" +
+                        "    }\n" +
+                        "  },");
+            out.println("  \"security\": [ { \"BearerAuth\": [] } ]");
             out.println("}");
         }
     }

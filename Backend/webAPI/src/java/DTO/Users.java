@@ -10,7 +10,6 @@ public class Users {
     private Integer stationId; // có thể NULL
     private String status;
     private String avatarUrl;
-    private Boolean mustChangePassword;
 
     public Users() {
     }
@@ -31,9 +30,6 @@ public class Users {
 
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
-
-    public Boolean getMustChangePassword() { return mustChangePassword; }
-    public void setMustChangePassword(Boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; }
 
     // Getter & Setter
     public int getId() { return id; }

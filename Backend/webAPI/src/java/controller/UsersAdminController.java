@@ -30,6 +30,57 @@ public class UsersAdminController extends HttpServlet {
     private final UsersDAO usersDAO = new UsersDAO();
     private final Gson gson = new Gson();
 
+    // Basic URL scheme checks: reject obviously unsafe schemes for avatarUrl
+    private boolean isUnsafeAvatarUrl(String url) {
+        if (url == null) return false;
+        String t = url.trim().toLowerCase();
+        if (t.startsWith("javascript:")) return true;
+        if (t.startsWith("file:")) return true;
+        // allow data: images but log caution
+        return false;
+    }
+
+    // If an existing user was Blocked and updated to Active, log the unblock action with actor info if available
+    private void logUnblockIfNeeded(HttpServletRequest req, Users existing, Users updated) {
+        try {
+            String exStatus = existing == null ? null : existing.getStatus();
+            String newStatus = updated == null ? null : updated.getStatus();
+            if (exStatus != null && exStatus.equalsIgnoreCase("blocked") && newStatus != null && newStatus.equalsIgnoreCase("active")) {
+                String actor = "unknown";
+                try {
+                    HttpSession session = req.getSession(false);
+                    if (session != null) {
+                        Object uobj = session.getAttribute("User");
+                        if (uobj instanceof Users) {
+                            Users act = (Users) uobj;
+                            actor = act.getEmail() != null ? act.getEmail() : (act.getFullName() != null ? act.getFullName() : "unknown");
+                        }
+                    }
+                } catch (Exception e) { }
+                // try token claims if session missing
+                if (actor == null || actor.equals("unknown")) {
+                    try {
+                        String token = null;
+                        String auth = req.getHeader("Authorization");
+                        if (auth != null && auth.toLowerCase().startsWith("bearer ")) token = auth.substring(7).trim();
+                        if (token == null && req.getCookies() != null) {
+                            for (Cookie c : req.getCookies()) if ("token".equals(c.getName())) { token = c.getValue(); break; }
+                        }
+                        if (token != null) {
+                            java.util.Map<String,Object> claims = util.JwtUtils.parseToken(token);
+                            if (claims != null) {
+                                Object e = claims.get("email"); if (e == null) e = claims.get("sub");
+                                if (e != null) actor = String.valueOf(e);
+                            }
+                        }
+                    } catch (Exception e) { }
+                }
+                String target = (updated.getEmail() != null && !updated.getEmail().isEmpty()) ? updated.getEmail() : String.valueOf(updated.getId());
+                getServletContext().log("UsersAdminController: Admin " + actor + " unblocked user id=" + updated.getId() + " email=" + target + " at " + new java.util.Date().toString());
+            }
+        } catch (Exception ex) { /* ignore logging errors */ }
+    }
+
     // Helper: allow either server session (legacy) or JWT bearer/cookie token
     private boolean isAdmin(HttpServletRequest req) {
         // testing shortcut: allow requests with header X-SMOKE-TEST=true to act as admin (local-only)
@@ -78,8 +129,26 @@ public class UsersAdminController extends HttpServlet {
 
         // allow either session-based admin or JWT-based admin
         if (!isAdmin(req)) {
+            // Log helpful debug info for denied admin access (do not log secrets)
+            boolean hasSession = req.getSession(false) != null;
+            boolean hasAuthHeader = req.getHeader("Authorization") != null;
+            boolean hasTokenCookie = false;
+            if (req.getCookies() != null) {
+                for (jakarta.servlet.http.Cookie c : req.getCookies()) if ("token".equals(c.getName())) { hasTokenCookie = true; break; }
+            }
+            getServletContext().log("UsersAdminController: access denied to GET /api/admin/users - isAdmin=false; hasSession=" + hasSession + ", hasAuthHeader=" + hasAuthHeader + ", hasTokenCookie=" + hasTokenCookie);
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            try (PrintWriter out = resp.getWriter()) { out.print(gson.toJson(java.util.Collections.singletonMap("error","Admin only"))); }
+            try (PrintWriter out = resp.getWriter()) {
+                java.util.Map<String,Object> m = new java.util.HashMap<>();
+                m.put("error", "Admin only");
+                // include non-sensitive hints to help debugging in dev environments
+                java.util.Map<String,Object> authHint = new java.util.HashMap<>();
+                authHint.put("hasSession", hasSession);
+                authHint.put("hasAuthHeader", hasAuthHeader);
+                authHint.put("hasTokenCookie", hasTokenCookie);
+                m.put("hint", java.util.Collections.singletonMap("auth", authHint));
+                out.print(gson.toJson(m));
+            }
             return;
         }
 
@@ -91,8 +160,9 @@ public class UsersAdminController extends HttpServlet {
             if (role != null && !role.isEmpty()) {
                 result = usersDAO.getUsersByRole(role);
             } else {
-                // return all users (Admin + Staff)
+                // return all users (Admin + Manager + Staff)
                 result = usersDAO.getUsersByRole("Admin");
+                result.addAll(usersDAO.getUsersByRole("Manager"));
                 result.addAll(usersDAO.getUsersByRole("Staff"));
             }
 
@@ -116,8 +186,24 @@ public class UsersAdminController extends HttpServlet {
         CorsUtil.setCors(resp, req);
         resp.setContentType("application/json;charset=UTF-8");
         if (!isAdmin(req)) {
+            boolean hasSession = req.getSession(false) != null;
+            boolean hasAuthHeader = req.getHeader("Authorization") != null;
+            boolean hasTokenCookie = false;
+            if (req.getCookies() != null) {
+                for (jakarta.servlet.http.Cookie c : req.getCookies()) if ("token".equals(c.getName())) { hasTokenCookie = true; break; }
+            }
+            getServletContext().log("UsersAdminController: access denied to POST /api/admin/users - isAdmin=false; hasSession=" + hasSession + ", hasAuthHeader=" + hasAuthHeader + ", hasTokenCookie=" + hasTokenCookie);
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            try (PrintWriter out = resp.getWriter()) { out.print(gson.toJson(java.util.Collections.singletonMap("error","Admin only"))); }
+            try (PrintWriter out = resp.getWriter()) {
+                java.util.Map<String,Object> m = new java.util.HashMap<>();
+                m.put("error", "Admin only");
+                java.util.Map<String,Object> authHint = new java.util.HashMap<>();
+                authHint.put("hasSession", hasSession);
+                authHint.put("hasAuthHeader", hasAuthHeader);
+                authHint.put("hasTokenCookie", hasTokenCookie);
+                m.put("hint", java.util.Collections.singletonMap("auth", authHint));
+                out.print(gson.toJson(m));
+            }
             return;
         }
 
@@ -157,6 +243,12 @@ public class UsersAdminController extends HttpServlet {
                     avatarUrl = req.getContextPath() + "/resources/images/uploads/" + filename;
                     u.setAvatarUrl(avatarUrl);
                 } else if (avatarUrl != null && !avatarUrl.trim().isEmpty()) {
+                    // basic scheme sanitation: reject unsafe schemes like javascript: or file:
+                    if (isUnsafeAvatarUrl(avatarUrl)) {
+                        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        out.print(gson.toJson(java.util.Collections.singletonMap("error","Invalid avatar URL scheme")));
+                        return;
+                    }
                     u.setAvatarUrl(avatarUrl);
                 }
 
@@ -179,9 +271,10 @@ public class UsersAdminController extends HttpServlet {
                     return;
                 }
 
-                // role and status defaults
+                // role default (admin creates staff by default)
                 if (u.getRole() == null || u.getRole().trim().isEmpty()) u.setRole("Staff");
-                if (u.getStatus() == null || u.getStatus().trim().isEmpty()) u.setStatus("Active");
+                // FIX: force Active status for admin-created users so admin-created staff do not require OTP activation
+                u.setStatus("Active");
 
                 // Station_ID required for Staff
                 String stationParam = req.getParameter("stationId");
@@ -231,9 +324,8 @@ public class UsersAdminController extends HttpServlet {
                 }
                 if (ok) {
                     // attempt onboarding email if we generated a temp password
-                    if (rawTemp != null) {
-                        try { util.EmailUtil.sendOnboardingEmail(u.getEmail(), rawTemp); } catch (Exception e) { getServletContext().log("UsersAdminController: onboarding email failed", e); }
-                    }
+                    // send onboarding instructions (do NOT include raw temp password in email)
+                    try { util.EmailUtil.sendOnboardingEmail(u.getEmail(), null); } catch (Exception e) { getServletContext().log("UsersAdminController: onboarding email failed", e); }
                     resp.setStatus(HttpServletResponse.SC_CREATED);
                     out.print(gson.toJson(java.util.Collections.singletonMap("status","success")));
                 } else {
@@ -296,9 +388,10 @@ public class UsersAdminController extends HttpServlet {
                 out.print(gson.toJson(java.util.Collections.singletonMap("error","Email already exists")));
                 return;
             }
-            // role/status defaults
+            // role default
             if (u.getRole() == null || u.getRole().trim().isEmpty()) u.setRole("User");
-            if (u.getStatus() == null || u.getStatus().trim().isEmpty()) u.setStatus("Active");
+            // FIX: force Active status for admin-created users so admin-created staff do not require OTP activation
+            u.setStatus("Active");
             // Station_ID handling
             if ("staff".equalsIgnoreCase(u.getRole())) {
                 if (u.getStationId() == null) { resp.setStatus(HttpServletResponse.SC_BAD_REQUEST); out.print(gson.toJson(java.util.Collections.singletonMap("error","stationId is required for Staff"))); return; }
@@ -338,8 +431,24 @@ public class UsersAdminController extends HttpServlet {
         CorsUtil.setCors(resp, req);
         resp.setContentType("application/json;charset=UTF-8");
         if (!isAdmin(req)) {
+            boolean hasSession = req.getSession(false) != null;
+            boolean hasAuthHeader = req.getHeader("Authorization") != null;
+            boolean hasTokenCookie = false;
+            if (req.getCookies() != null) {
+                for (jakarta.servlet.http.Cookie c : req.getCookies()) if ("token".equals(c.getName())) { hasTokenCookie = true; break; }
+            }
+            getServletContext().log("UsersAdminController: access denied to PUT /api/admin/users - isAdmin=false; hasSession=" + hasSession + ", hasAuthHeader=" + hasAuthHeader + ", hasTokenCookie=" + hasTokenCookie);
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            try (PrintWriter out = resp.getWriter()) { out.print(gson.toJson(java.util.Collections.singletonMap("error","Admin only"))); }
+            try (PrintWriter out = resp.getWriter()) {
+                java.util.Map<String,Object> m = new java.util.HashMap<>();
+                m.put("error", "Admin only");
+                java.util.Map<String,Object> authHint = new java.util.HashMap<>();
+                authHint.put("hasSession", hasSession);
+                authHint.put("hasAuthHeader", hasAuthHeader);
+                authHint.put("hasTokenCookie", hasTokenCookie);
+                m.put("hint", java.util.Collections.singletonMap("auth", authHint));
+                out.print(gson.toJson(m));
+            }
             return;
         }
 
@@ -386,15 +495,22 @@ public class UsersAdminController extends HttpServlet {
                     try (InputStream in = avatarPart.getInputStream()) { Files.copy(in, outFile.toPath(), StandardCopyOption.REPLACE_EXISTING); }
                     avatarUrl = req.getContextPath() + "/resources/images/uploads/" + filename;
                 }
-                if (avatarUrl != null && !avatarUrl.trim().isEmpty()) u.setAvatarUrl(avatarUrl);
+                if (avatarUrl != null && !avatarUrl.trim().isEmpty()) {
+                    if (isUnsafeAvatarUrl(avatarUrl)) {
+                        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        out.print(gson.toJson(java.util.Collections.singletonMap("error","Invalid avatar URL scheme")));
+                        return;
+                    }
+                    u.setAvatarUrl(avatarUrl);
+                }
 
                 boolean ok = false;
                 // password-only reset case
                 if (u.getId() != 0 && u.getPassword() != null && (u.getFullName() == null && u.getEmail() == null && u.getPhone() == null && u.getRole() == null && u.getStatus() == null && u.getAvatarUrl() == null)) {
                     ok = usersDAO.updatePasswordById(u.getId(), u.getPassword());
                 } else {
-                    // if promoting Staff -> Admin, null out station id
-                    if (u.getRole() != null && u.getRole().equalsIgnoreCase("admin")) u.setStationId(null);
+                    // if promoting Staff -> Admin/Manager, null out station id (Admin and Manager do not have a Station_ID)
+                    if (u.getRole() != null && (u.getRole().equalsIgnoreCase("admin") || u.getRole().equalsIgnoreCase("manager"))) u.setStationId(null);
                     // prevent demotion of last admin
                     if (existing.getRole() != null && existing.getRole().equalsIgnoreCase("admin") && !existing.getRole().equalsIgnoreCase(u.getRole())) {
                         // attempted role change on admin (should have been denied earlier), reject
@@ -413,7 +529,10 @@ public class UsersAdminController extends HttpServlet {
                     }
                     ok = usersDAO.updateStaff(u);
                 }
-                if (ok) { resp.setStatus(HttpServletResponse.SC_OK); out.print(gson.toJson(java.util.Collections.singletonMap("status","success"))); }
+                if (ok) {
+                    // log unblock if status changed Blocked -> Active
+                    try { logUnblockIfNeeded(req, existing, u); } catch (Exception ex) { /* ignore */ }
+                    resp.setStatus(HttpServletResponse.SC_OK); out.print(gson.toJson(java.util.Collections.singletonMap("status","success"))); }
                 else { resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR); out.print(gson.toJson(java.util.Collections.singletonMap("status","fail"))); }
                 return;
             }
@@ -463,9 +582,11 @@ public class UsersAdminController extends HttpServlet {
                         return;
                     }
                 }
-                // If promoting staff -> admin, null station id
-                if (u.getRole() != null && u.getRole().equalsIgnoreCase("admin")) u.setStationId(null);
+                // If promoting staff -> admin/manager, null station id (both Admin and Manager do not have Station_ID)
+                if (u.getRole() != null && (u.getRole().equalsIgnoreCase("admin") || u.getRole().equalsIgnoreCase("manager"))) u.setStationId(null);
                 ok = usersDAO.updateStaff(u);
+                // log unblock if status changed Blocked -> Active
+                try { logUnblockIfNeeded(req, existing, u); } catch (Exception ex) { /* ignore */ }
                 // log privilege change if role changed
                 try {
                     if (existing.getRole() != null && !existing.getRole().equalsIgnoreCase(u.getRole())) {

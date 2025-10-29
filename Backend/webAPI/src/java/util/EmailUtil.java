@@ -54,29 +54,37 @@ public class EmailUtil {
      */
     public static boolean sendOnboardingEmail(String email, String tempPassword) {
         System.out.println("[EmailUtil] Sending onboarding email to: " + email);
-        System.out.println("[EmailUtil] Temporary password: " + tempPassword);
+        // If tempPassword is provided, legacy behavior could include it; for admin-created accounts we prefer
+        // to instruct the user to set their password via the Forgot/Reset flow. Avoid sending raw passwords.
         try {
             // Try to call EmailService.sendOnboardingEmail via reflection to avoid compile-time dependency
-            try {
-                Class<?> svc = Class.forName("mylib.EmailService");
-                java.lang.reflect.Method m = null;
                 try {
-                    m = svc.getMethod("sendOnboardingEmail", String.class, String.class);
-                } catch (NoSuchMethodException nsme) {
-                    m = null;
-                }
-                if (m != null) {
-                    Object res = m.invoke(null, email, tempPassword);
-                    if (res instanceof Boolean) return (Boolean) res;
+                    Class<?> svc = Class.forName("mylib.EmailService");
+                    // Prefer a no-password onboarding method if available
+                    try {
+                        java.lang.reflect.Method m = svc.getMethod("sendOnboardingEmailNoPassword", String.class);
+                        Object res = m.invoke(null, email);
+                        if (res instanceof Boolean) return (Boolean) res;
+                        return true;
+                    } catch (NoSuchMethodException nsme) {
+                        // fallback to older two-arg method if present (but avoid sending raw password if null)
+                        try {
+                            java.lang.reflect.Method m2 = svc.getMethod("sendOnboardingEmail", String.class, String.class);
+                            Object res = m2.invoke(null, email, tempPassword == null ? "" : tempPassword);
+                            if (res instanceof Boolean) return (Boolean) res;
+                            return true;
+                        } catch (NoSuchMethodException nsme2) {
+                            System.out.println("[EmailUtil] No suitable EmailService onboarding method found, logged only.");
+                            // Log an advisory message indicating what the onboarding should say.
+                            System.out.println("[EmailUtil] Advisory: Send email telling the user their account is ready and to use the 'Forgot Password' link to set a password.");
+                            return true;
+                        }
+                    }
+                } catch (ClassNotFoundException cnfe) {
+                    System.out.println("[EmailUtil] EmailService class not found, logged only.");
+                    System.out.println("[EmailUtil] Advisory: Send email telling the user their account is ready and to use the 'Forgot Password' link to set a password.");
                     return true;
-                } else {
-                    System.out.println("[EmailUtil] No EmailService.sendOnboardingEmail method found, logged only.");
-                    return true;
                 }
-            } catch (ClassNotFoundException cnfe) {
-                System.out.println("[EmailUtil] EmailService class not found, logged only.");
-                return true;
-            }
         } catch (Throwable t) {
             System.err.println("[EmailUtil] Failed to send onboarding email: " + t.getMessage());
             return false;
