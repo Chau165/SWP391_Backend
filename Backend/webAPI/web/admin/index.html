@@ -73,7 +73,14 @@
 	</div>
 
 	<div class="panel">
-		<div id="stationsContainer">Loading stations…</div>
+		<div style="margin-bottom:12px">
+			<button id="toggleStationsBtn" class="btn btn-primary" style="padding:8px 16px">
+				� Tải danh sách trạm
+			</button>
+		</div>
+		<div id="stationsContainer" style="display:none">
+			<!-- Station list will be rendered here -->
+		</div>
 	</div>
 
 	<!-- User Management panel -->
@@ -81,15 +88,20 @@
 		<h2 style="margin-top:0">USER MANAGEMENT</h2>
 		<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
 			<div>
+				<button id="toggleUsersBtn" class="btn btn-primary" style="padding:8px 16px">
+					👥 Tải danh sách nhân sự
+				</button>
+			</div>
+			<div id="userControls" style="display:none">
 				<input id="userSearch" placeholder="Search by name or email" style="width:320px;padding:6px" />
 				<select id="roleFilter" style="margin-left:8px;padding:6px"><option value="">All Roles</option><option value="Staff">Staff</option><option value="Manager">Manager</option><option value="Admin">Admin</option></select>
 				<button id="filterUsers" class="btn">Filter</button>
-			</div>
-			<div>
-				<button id="createStaffBtn" class="btn btn-primary">Create Staff</button>
+				<button id="createStaffBtn" class="btn btn-primary" style="margin-left:8px">Create Staff</button>
 			</div>
 		</div>
-		<div id="usersContainer">Loading users…</div>
+		<div id="usersContainer" style="display:none">
+			<!-- User list will be rendered here -->
+		</div>
 	</div>
 
 	<!-- User modal -->
@@ -136,7 +148,12 @@
 		<div style="margin-bottom:8px;color:#333">Bảng cảnh báo và đề xuất nâng cấp được phân tích từ dữ liệu hệ thống — hiển thị trực tiếp. Một số thông tin nhạy cảm không được xuất khẩu tự động.</div>
 		<!-- Inline AI panel (progressive enhancement). If API isn't available the iframe fallback remains. -->
 		<div style="display:flex;gap:12px;align-items:center;margin-bottom:8px">
-			<div style="flex:1;display:flex;gap:8px;align-items:center">
+			<div>
+				<button id="toggleAIBtn" class="btn btn-primary" style="padding:8px 16px">
+					🤖 Tải báo cáo dự báo
+				</button>
+			</div>
+			<div id="aiControls" style="display:none;flex:1;gap:8px;align-items:center">
 				<input id="aiSearch" placeholder="Tìm theo tên trạm..." style="padding:6px;border:1px solid #ddd;border-radius:4px;width:240px" />
 				<select id="aiStatusFilter" style="padding:6px;border:1px solid #ddd;border-radius:4px">
 					<option value="">Tất cả trạng thái</option>
@@ -145,8 +162,6 @@
 					<option value="critical">Critical</option>
 				</select>
 				<button id="aiRefresh" class="btn">Refresh</button>
-			</div>
-			<div style="display:flex;gap:8px">
 				<button id="exportCsvBtn" class="btn">📊 Export CSV</button>
 			</div>
 		</div>
@@ -160,9 +175,11 @@
 
 		<div id="aiWarning" style="display:none;background:#fff3cd;border:1px solid #ffeeba;padding:8px;border-radius:6px;color:#856404;margin-bottom:8px">Cảnh báo: dữ liệu lịch sử swap không đủ để dự báo chính xác — xem chi tiết.</div>
 
-		<div id="aiInlinePanel" style="width:100%;background:#fff;border-radius:6px;overflow:hidden;padding:8px;box-sizing:border-box">
+		<div id="aiInlinePanel" style="width:100%;background:#fff;border-radius:6px;overflow:hidden;padding:8px;box-sizing:border-box;display:none">
 			<!-- Table will be rendered here by JS when /admin/api/upgrade_suggestions is available -->
-			<div id="aiTableContainer">Đang tải dữ liệu phân tích...</div>
+			<div id="aiTableContainer">
+				<!-- AI data will be rendered here -->
+			</div>
 			<!-- Fallback iframe hidden by default - only show if inline fails -->
 			<div id="aiFallbackFrame" style="display:none;margin-top:12px">
 				<iframe id="aiInsightsFrame" src="./upgrade_insights.jsp" style="width:100%;height:220px;border:0;border-radius:6px"></iframe>
@@ -212,7 +229,10 @@
 		async function fetchUpgradeInsights(){
 			const container = document.getElementById('aiTableContainer');
 			if (!container) return;
-			container.innerHTML = 'Đang tải dữ liệu phân tích...';
+			
+			// Show loading spinner
+			container.innerHTML = '<div style="text-align:center;padding:40px 20px"><div style="display:inline-block;width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #1976d2;border-radius:50%;animation:spin 1s linear infinite"></div><p class="muted" style="margin-top:12px">Đang tải dữ liệu phân tích...</p></div><style>@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>';
+			
 			try {
 				const res = await fetch(BASE + '/admin/api/upgrade_suggestions', { credentials: 'include' });
 				if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -227,6 +247,7 @@
 				// Show fallback iframe if API fails
 				const fallback = document.getElementById('aiFallbackFrame');
 				if (fallback) fallback.style.display = '';
+				throw err; // Re-throw to trigger catch in button handler
 			}
 		}
 
@@ -738,10 +759,135 @@
 		// jsPDF library loading removed - PDF export feature discontinued
 		// Only CSV export is supported for AI Infrastructure Report
 
-		// initial load
-		setTimeout(()=> fetchUpgradeInsights(), 150);
+		// ========================================================================
+		// LOAD/CLOSE LIST TOGGLE MANAGEMENT
+		// ========================================================================
+		let _stationsOpen = false;
+		let _stationsLoaded = false;
+		let _usersOpen = false;
+		let _usersLoaded = false;
+		let _aiOpen = false;
+		let _aiLoaded = false;
 
-		document.getElementById('refreshBtn').addEventListener('click', fetchStations);
+		// Toggle Stations List
+		document.getElementById('toggleStationsBtn').addEventListener('click', function() {
+			const container = document.getElementById('stationsContainer');
+			
+			if (_stationsOpen) {
+				// Close list
+				container.style.display = 'none';
+				this.innerHTML = '📋 Tải danh sách trạm';
+				_stationsOpen = false;
+			} else {
+				// Open list
+				if (!_stationsLoaded) {
+					// First time loading
+					this.disabled = true;
+					this.innerHTML = '⏳ Đang tải...';
+					fetchStations().then(() => {
+						_stationsLoaded = true;
+						_stationsOpen = true;
+						container.style.display = 'block';
+						this.disabled = false;
+						this.innerHTML = '✖️ Đóng danh sách';
+					}).catch(() => {
+						this.disabled = false;
+						this.innerHTML = '� Tải danh sách trạm';
+					});
+				} else {
+					// Already loaded, just show
+					container.style.display = 'block';
+					this.innerHTML = '✖️ Đóng danh sách';
+					_stationsOpen = true;
+				}
+			}
+		});
+
+		// Toggle Users List
+		document.getElementById('toggleUsersBtn').addEventListener('click', function() {
+			const container = document.getElementById('usersContainer');
+			const controls = document.getElementById('userControls');
+			
+			if (_usersOpen) {
+				// Close list
+				container.style.display = 'none';
+				controls.style.display = 'none';
+				this.innerHTML = '👥 Tải danh sách nhân sự';
+				_usersOpen = false;
+			} else {
+				// Open list
+				if (!_usersLoaded) {
+					// First time loading
+					this.disabled = true;
+					this.innerHTML = '⏳ Đang tải...';
+					fetchUsers().then(() => {
+						_usersLoaded = true;
+						_usersOpen = true;
+						container.style.display = 'block';
+						controls.style.display = 'flex';
+						this.disabled = false;
+						this.innerHTML = '✖️ Đóng danh sách';
+					}).catch(() => {
+						this.disabled = false;
+						this.innerHTML = '👥 Tải danh sách nhân sự';
+					});
+				} else {
+					// Already loaded, just show
+					container.style.display = 'block';
+					controls.style.display = 'flex';
+					this.innerHTML = '✖️ Đóng danh sách';
+					_usersOpen = true;
+				}
+			}
+		});
+
+		// Toggle AI Report
+		document.getElementById('toggleAIBtn').addEventListener('click', function() {
+			const container = document.getElementById('aiInlinePanel');
+			const controls = document.getElementById('aiControls');
+			
+			if (_aiOpen) {
+				// Close list
+				container.style.display = 'none';
+				controls.style.display = 'none';
+				this.innerHTML = '🤖 Tải báo cáo dự báo';
+				_aiOpen = false;
+			} else {
+				// Open list
+				if (!_aiLoaded) {
+					// First time loading
+					this.disabled = true;
+					this.innerHTML = '⏳ Đang tải...';
+					fetchUpgradeInsights().then(() => {
+						_aiLoaded = true;
+						_aiOpen = true;
+						container.style.display = 'block';
+						controls.style.display = 'flex';
+						this.disabled = false;
+						this.innerHTML = '✖️ Đóng báo cáo';
+					}).catch(() => {
+						this.disabled = false;
+						this.innerHTML = '🤖 Tải báo cáo dự báo';
+					});
+				} else {
+					// Already loaded, just show
+					container.style.display = 'block';
+					controls.style.display = 'flex';
+					this.innerHTML = '✖️ Đóng báo cáo';
+					_aiOpen = true;
+				}
+			}
+		});
+
+		// Refresh button now reloads data if list is open
+		document.getElementById('refreshBtn').addEventListener('click', () => {
+			if (_stationsOpen && _stationsLoaded) fetchStations();
+		});
+
+		// AI Refresh button reloads AI data if list is open
+		document.getElementById('aiRefresh').addEventListener('click', () => {
+			if (_aiOpen && _aiLoaded) fetchUpgradeInsights();
+		});
 		document.getElementById('createBtn').addEventListener('click', async () => {
 			const name = document.getElementById('newName').value.trim();
 			const address = document.getElementById('newAddress').value.trim();
@@ -766,6 +912,9 @@
 
 		async function fetchStations(){
 			setStatus('Loading...');
+			const container = document.getElementById('stationsContainer');
+			container.innerHTML = '<div style="text-align:center;padding:40px 20px"><div style="display:inline-block;width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #1976d2;border-radius:50%;animation:spin 1s linear infinite"></div><p class="muted" style="margin-top:12px">Đang tải danh sách trạm...</p></div>';
+			
 			try {
 				const r = await fetch(API_STATIONS_GET, { credentials: 'include' });
 				if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -776,6 +925,7 @@
 			} catch (err) {
 				setStatus('Error: ' + err);
 				document.getElementById('stationsContainer').innerHTML = '<div class="muted">Error loading stations: '+err+'</div>';
+				throw err; // Re-throw to trigger catch in button handler
 			}
 		}
 
@@ -1167,12 +1317,19 @@
 			if (role) params.push('role=' + encodeURIComponent(role));
 			if (q) params.push('q=' + encodeURIComponent(q));
 			if (params.length) url += '?' + params.join('&');
+			
+			const container = document.getElementById('usersContainer');
+			container.innerHTML = '<div style="text-align:center;padding:40px 20px"><div style="display:inline-block;width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #1976d2;border-radius:50%;animation:spin 1s linear infinite"></div><p class="muted" style="margin-top:12px">Đang tải danh sách nhân sự...</p></div>';
+			
 			try {
 				const res = await fetch(url, { method: 'GET', credentials: 'include', headers: getAuthHeaders() });
 				if (!res.ok) throw new Error('HTTP ' + res.status);
 				const users = await res.json();
 				renderUsers(users || []);
-			} catch(err){ document.getElementById('usersContainer').innerHTML = '<div class="muted">Error loading users: '+err+'</div>'; }
+			} catch(err){ 
+				document.getElementById('usersContainer').innerHTML = '<div class="muted">Error loading users: '+err+'</div>'; 
+				throw err; // Re-throw to trigger catch in button handler
+			}
 		}
 
 		function renderUsers(users){
@@ -1304,9 +1461,15 @@
 
 		document.getElementById('closeUserModal').addEventListener('click', ()=>{ document.getElementById('userModal').style.display = 'none'; });
 
-		document.getElementById('createStaffBtn').addEventListener('click', ()=> openUserModal({}));
+		document.getElementById('createStaffBtn').addEventListener('click', ()=> {
+			if (!_usersOpen || !_usersLoaded) return; // Only allow if users list is open
+			openUserModal({});
+		});
 
-		document.getElementById('filterUsers').addEventListener('click', ()=> fetchUsers());
+		document.getElementById('filterUsers').addEventListener('click', ()=> {
+			if (!_usersOpen || !_usersLoaded) return; // Only allow if users list is open
+			fetchUsers();
+		});
 
 		document.getElementById('uAvatar').addEventListener('input', (e)=>{
 			const preview = document.getElementById('uAvatarPreview');
