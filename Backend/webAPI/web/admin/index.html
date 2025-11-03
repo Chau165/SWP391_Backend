@@ -82,7 +82,7 @@
 		<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
 			<div>
 				<input id="userSearch" placeholder="Search by name or email" style="width:320px;padding:6px" />
-				<select id="roleFilter" style="margin-left:8px;padding:6px"><option value="">All Roles</option><option value="Staff">Staff</option><option value="Admin">Admin</option></select>
+				<select id="roleFilter" style="margin-left:8px;padding:6px"><option value="">All Roles</option><option value="Staff">Staff</option><option value="Manager">Manager</option><option value="Admin">Admin</option></select>
 				<button id="filterUsers" class="btn">Filter</button>
 			</div>
 			<div>
@@ -103,7 +103,7 @@
 			<div style="margin-bottom:8px"><label>Email</label><br/><input id="uEmail" style="width:100%;padding:6px"/></div>
 			<div style="margin-bottom:8px"><label>Phone</label><br/><input id="uPhone" style="width:100%;padding:6px"/></div>
 			<div style="margin-bottom:8px"><label>Role</label><br/>
-				<select id="uRole" style="width:100%;padding:6px"><option value="Staff">Staff</option><option value="Admin">Admin</option></select>
+				<select id="uRole" style="width:100%;padding:6px"><option value="Staff">Staff</option><option value="Manager">Manager</option><option value="Admin">Admin</option></select>
 			</div>
 			<div style="margin-bottom:8px"><label>Station (required for Staff)</label><br/>
 				<select id="uStationId" style="width:100%;padding:6px"><option value="">-- Select station --</option></select>
@@ -130,6 +130,66 @@
 		</div>
 	</div>
 
+	<!-- AI Dự báo nâng cấp hạ tầng panel -->
+	<div class="panel" style="margin-top:20px">
+		<h2 style="margin-top:0">AI Dự báo nâng cấp hạ tầng</h2>
+		<div style="margin-bottom:8px;color:#333">Bảng cảnh báo và đề xuất nâng cấp được phân tích từ dữ liệu hệ thống — hiển thị trực tiếp. Một số thông tin nhạy cảm không được xuất khẩu tự động.</div>
+		<!-- Inline AI panel (progressive enhancement). If API isn't available the iframe fallback remains. -->
+		<div style="display:flex;gap:12px;align-items:center;margin-bottom:8px">
+			<div style="flex:1;display:flex;gap:8px;align-items:center">
+				<input id="aiSearch" placeholder="Tìm theo tên trạm..." style="padding:6px;border:1px solid #ddd;border-radius:4px;width:240px" />
+				<select id="aiStatusFilter" style="padding:6px;border:1px solid #ddd;border-radius:4px">
+					<option value="">Tất cả trạng thái</option>
+					<option value="ok">OK</option>
+					<option value="warning">Warning</option>
+					<option value="critical">Critical</option>
+				</select>
+				<button id="aiRefresh" class="btn">Refresh</button>
+			</div>
+			<div style="display:flex;gap:8px">
+				<button id="exportCsvBtn" class="btn">📊 Export CSV</button>
+			</div>
+		</div>
+
+		<!-- Data quality disclaimer (always visible) -->
+		<div style="background:#e3f2fd;border:1px solid #2196f3;padding:10px;border-radius:6px;color:#1565c0;margin-bottom:10px;font-size:13px">
+			<strong>⚠️ LƯU Ý:</strong> Dashboard này chỉ mang tính chất <strong>tham khảo</strong> để hỗ trợ quyết định. 
+			Luôn cân nhắc thêm khi số liệu swap quá ít hoặc khi trạm mới đi vào hoạt động. 
+			<span style="font-size:11px;opacity:0.85">(Yêu cầu tối thiểu: ≥3 giao dịch trong 14 ngày, có dữ liệu slot capacity)</span>
+		</div>
+
+		<div id="aiWarning" style="display:none;background:#fff3cd;border:1px solid #ffeeba;padding:8px;border-radius:6px;color:#856404;margin-bottom:8px">Cảnh báo: dữ liệu lịch sử swap không đủ để dự báo chính xác — xem chi tiết.</div>
+
+		<div id="aiInlinePanel" style="width:100%;background:#fff;border-radius:6px;overflow:hidden;padding:8px;box-sizing:border-box">
+			<!-- Table will be rendered here by JS when /admin/api/upgrade_suggestions is available -->
+			<div id="aiTableContainer">Đang tải dữ liệu phân tích...</div>
+			<!-- Fallback iframe hidden by default - only show if inline fails -->
+			<div id="aiFallbackFrame" style="display:none;margin-top:12px">
+				<iframe id="aiInsightsFrame" src="./upgrade_insights.jsp" style="width:100%;height:220px;border:0;border-radius:6px"></iframe>
+			</div>
+		</div>
+
+		<!-- Details modal (chart + extended recommendation) -->
+		<div id="aiDetailsModal" style="display:none;position:fixed;left:0;top:0;width:100%;height:100%;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:10001">
+			<div style="background:#fff;padding:12px;border-radius:8px;max-width:900px;width:95%;max-height:90%;overflow:auto">
+				<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+					<strong id="aiDetailsTitle">Chi tiết đề xuất</strong>
+					<button id="aiCloseDetails" class="btn">Đóng</button>
+				</div>
+				<div id="aiDetailsBody">
+					<!-- Chart container with fixed max height -->
+					<div style="position:relative;width:100%;max-height:300px;height:300px;margin-bottom:12px">
+						<canvas id="aiTrendChart" style="width:100%;height:100%;background:#fff;border:1px solid #f0f0f0;border-radius:6px"></canvas>
+					</div>
+					<!-- Summary stats and recommendation -->
+					<div id="aiDetailsRecommendation" style="margin-top:12px"></div>
+					<!-- Detailed explanation section -->
+					<div id="aiDetailsExplanation" style="margin-top:12px;padding:10px;background:#f9f9f9;border-radius:6px;font-size:13px;color:#333"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<script>
 	// Base paths — compute dynamically from current path so admin UI works under different servlet contexts
 	// e.g. if served at http://host/<context>/admin then BASE will be http://host/<context>
@@ -139,6 +199,547 @@
 		const API_STATIONS_GET = BASE + '/admin/api/stations_with_charging.jsp'; // returns stations with nested ChargingStations
 		const API_STATIONS_CRUD = BASE + '/api/admin/station'; // admin servlet handles create/update/delete (requires session)
 		const API_CS = BASE + '/admin/api/charging_stations'; // servlet for charging station CRUD (GET/POST/DELETE)
+		// AI insights page (server-side JSP powered by StationUpgradeSuggestionController)
+		const AI_PAGE = BASE + '/admin/upgrade_insights.jsp';
+		// set iframe src if present (embed AI panel into dashboard)
+		setTimeout(()=>{
+			const f = document.getElementById('aiInsightsFrame');
+			if (f) f.src = AI_PAGE;
+		}, 50);
+
+		// ----- Inline AI rendering (fetch JSON from servlet if available) -----
+		window._aiData = []; // Store globally for details/export
+		async function fetchUpgradeInsights(){
+			const container = document.getElementById('aiTableContainer');
+			if (!container) return;
+			container.innerHTML = 'Đang tải dữ liệu phân tích...';
+			try {
+				const res = await fetch(BASE + '/admin/api/upgrade_suggestions', { credentials: 'include' });
+				if (!res.ok) throw new Error('HTTP ' + res.status);
+				const data = await res.json();
+				window._aiData = data || []; // Store for later use
+				renderInsightsTable(data || []);
+				// Hide fallback iframe on success
+				const fallback = document.getElementById('aiFallbackFrame');
+				if (fallback) fallback.style.display = 'none';
+			} catch(err){
+				container.innerHTML = '<div class="muted">Không thể tải dữ liệu AI qua API: '+String(err)+'<br/>Xem bảng dưới đây (server-side render).</div>';
+				// Show fallback iframe if API fails
+				const fallback = document.getElementById('aiFallbackFrame');
+				if (fallback) fallback.style.display = '';
+			}
+		}
+
+		function computeBadge(item){
+			// STRICT PRECEDENCE RULES: Must match backend StationUpgradeSuggestionController.java exactly
+			try {
+				// First check if backend explicitly provided status field
+				if (item.status) {
+					switch(item.status) {
+						case 'WARNING_DATA': return { cls: 'warning-data', label: '⚠️ DATA' };
+						case 'CRITICAL': return { cls: 'critical', label: '🚨 CRITICAL' };
+						case 'WARNING': return { cls: 'warning', label: '⚠️ WARNING' };
+						case 'OK': return { cls: 'ok', label: '✅ OK' };
+						default: return { cls: 'ok', label: 'OK' };
+					}
+				}
+				
+				// Fallback: compute locally using same rules as backend
+				const sampleSize = Number(item.sampleSize || 0);
+				const slotCap = Number(item.slotCapacity || 1);
+				
+				// RULE 1: Insufficient data (WARNING_DATA)
+				if (sampleSize < 5) {
+					return { cls: 'warning-data', label: '⚠️ DATA' };
+				}
+				
+				// Parse metrics
+				const failRate = parseFloat((item.failRate || '0%').toString().replace('%','')) || 0; // as percentage
+				const overload = Number(item.overloadDays || 0);
+				const last7Avg = Number(item.last7Avg || 0);
+				const growth = parseFloat(item.growthPercent || 0) || 0;
+				
+				// RULE 2: CRITICAL - failRate >= 20% OR overload >= 2 OR last7Avg >= capacity
+				if (failRate >= 20 || overload >= 2 || last7Avg >= slotCap) {
+					return { cls: 'critical', label: '🚨 CRITICAL' };
+				}
+				
+				// RULE 3: WARNING - failRate >= 10% OR overload == 1 OR last7Avg >= 80% capacity OR growth >= 50%
+				if (failRate >= 10 || overload === 1 || last7Avg >= slotCap * 0.8 || growth >= 50) {
+					return { cls: 'warning', label: '⚠️ WARNING' };
+				}
+				
+				// RULE 4: OK - all metrics healthy
+				return { cls: 'ok', label: '✅ OK' };
+			} catch(e){ 
+				console.error('computeBadge error:', e);
+				return { cls: 'ok', label: 'OK' }; 
+			}
+		}
+
+		function renderInsightsTable(list){
+			const container = document.getElementById('aiTableContainer');
+			if (!container) return;
+			if (!Array.isArray(list) || list.length === 0){ container.innerHTML = '<div class="muted">Không có đề xuất</div>'; return; }
+			
+			// Add legend/tooltip definitions
+			let html = '<div style="margin-bottom:12px;padding:8px;background:#f9f9f9;border-radius:6px;font-size:13px">';
+			html += '<strong>Chú thích các chỉ số:</strong><br/>';
+			html += '<span style="color:#666">• <strong>last7Avg</strong>: Trung bình lượt đổi pin/ngày trong 7 ngày gần nhất</span><br/>';
+			html += '<span style="color:#666">• <strong>prev7Avg</strong>: Trung bình lượt đổi pin/ngày của 7 ngày trước đó</span><br/>';
+			html += '<span style="color:#666">• <strong>overloadDays</strong>: Số ngày trạm bị quá tải (booking > slot capacity)</span><br/>';
+			html += '<span style="color:#666">• <strong>failRate</strong>: Tỉ lệ giao dịch lỗi hoặc chưa hoàn thành</span><br/>';
+			html += '<span style="color:#666">• <strong>Status</strong>: <span style="background:#9e9e9e;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px">⚠️ DATA</span> = Không đủ dữ liệu | ';
+			html += '<span style="background:#4caf50;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px">✅ OK</span> = Bình thường | ';
+			html += '<span style="background:#ff9800;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px">⚠️ WARNING</span> = Cần theo dõi | ';
+			html += '<span style="background:#f44336;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px">🚨 CRITICAL</span> = Cần nâng cấp ngay</span>';
+			html += '</div>';
+			
+			// build table with station name column
+			html += '<table style="width:100%;border-collapse:collapse"><thead><tr>';
+			html += '<th style="text-align:left">ID</th>';
+			html += '<th style="text-align:left">Tên Trạm</th>';
+			html += '<th style="text-align:center" title="Trung bình lượt đổi/ngày (7 ngày gần nhất)">last7Avg</th>';
+			html += '<th style="text-align:center" title="Trung bình lượt đổi/ngày (7 ngày trước đó)">prev7Avg</th>';
+			html += '<th style="text-align:center" title="Số ngày quá tải">overloadDays</th>';
+			html += '<th style="text-align:center" title="Tỉ lệ giao dịch lỗi">failRate</th>';
+			html += '<th style="text-align:left">Đề xuất</th>';
+			html += '<th style="text-align:center">Status</th>';
+			html += '<th style="text-align:center">Actions</th>';
+			html += '</tr></thead><tbody>';
+			
+			list.forEach(item=>{
+				const badge = computeBadge(item);
+				const stationId = item.stationId || item.Station_ID || '';
+				const stationName = item.stationName || item.StationName || ('Trạm #' + stationId);
+				// Badge color mapping for 4 status levels
+				let badgeColor = '#4caf50'; // Default OK (green)
+				if (badge.cls === 'warning-data') badgeColor = '#9e9e9e'; // Gray for insufficient data
+				else if (badge.cls === 'critical') badgeColor = '#f44336'; // Red
+				else if (badge.cls === 'warning') badgeColor = '#ff9800'; // Orange
+				
+				// ====================================================================
+				// Check if data is insufficient for detailed analysis (Rule 1)
+				// ====================================================================
+				const sampleSize = item.sampleSize || 0;
+				const slotCapacity = item.slotCapacity || 0;
+				const dataInsufficient = item.dataInsufficient || false;
+				const slotCapacityMissing = item.slotCapacityMissing || false;
+				
+				// Rule 1: sampleSize < 5 OR slotCapacity <= 0 → insufficient data
+				const isInsufficientData = (sampleSize < 5) || (slotCapacity <= 0) || dataInsufficient || slotCapacityMissing;
+				
+				// Details button: disable if insufficient data
+				let detailsButton = '';
+				if (isInsufficientData) {
+					detailsButton = `<button class="btn" disabled style="background:#ccc;cursor:not-allowed;opacity:0.5" title="⚠️ Không đủ dữ liệu để phân tích chi tiết">Details</button>`;
+				} else {
+					detailsButton = `<button class="btn" data-action="details">Details</button>`;
+				}
+				
+				html += `<tr data-id="${stationId}">`;
+				html += `<td>${stationId}</td>`;
+				html += `<td><strong>${escapeHtml(stationName)}</strong></td>`;
+				html += `<td style="text-align:center">${Number(item.last7Avg||0).toFixed(1)}</td>`;
+				html += `<td style="text-align:center">${Number(item.prev7Avg||0).toFixed(1)}</td>`;
+				html += `<td style="text-align:center">${item.overloadDays||0}</td>`;
+				html += `<td style="text-align:center">${item.failRate||'0%'}</td>`;
+				html += `<td style="max-width:300px">${escapeHtml(item.recommendation||item.suggestion||'Không cần nâng cấp ngay')}</td>`;
+				html += `<td style="text-align:center"><span class="ai-badge ${badge.cls}" style="background:${badgeColor};padding:4px 10px;border-radius:12px;color:#fff;font-size:12px;font-weight:600">${badge.label}</span></td>`;
+				html += `<td style="text-align:center">${detailsButton}</td>`;
+				html += `</tr>`;
+			});
+			html += '</tbody></table>';
+			container.innerHTML = html;
+			// attach details handlers
+			document.querySelectorAll('#aiTableContainer button[data-action="details"]').forEach(b=> b.addEventListener('click', async (e)=>{
+				const tr = e.target.closest('tr'); const id = tr && tr.dataset && tr.dataset.id; if (!id) return;
+				openDetailsModal(id);
+			}));
+			// show warning if many items have small sample sizes (simple heuristic)
+			const lowDataCount = list.filter(i => (i.sampleSize||0) < 7).length;
+			const warnEl = document.getElementById('aiWarning');
+			if (warnEl) warnEl.style.display = (lowDataCount > 0 ? '' : 'none');
+		}
+
+		// Export CSV with proper headers and formatting
+		function downloadCSV(rows, filename){
+			if (!Array.isArray(rows) || rows.length === 0) { alert('Không có dữ liệu để export'); return; }
+			
+			// Sort by status priority: Critical > Warning > OK > WARNING_DATA (insufficient data at bottom)
+			const sortedRows = [...rows].sort((a, b) => {
+				const badgeA = computeBadge(a);
+				const badgeB = computeBadge(b);
+				const priority = { 'critical': 4, 'warning': 3, 'ok': 2, 'warning-data': 1 };
+				return (priority[badgeB.cls] || 0) - (priority[badgeA.cls] || 0);
+			});
+			
+			// Count by status for summary
+			const statusCounts = { critical: 0, warning: 0, ok: 0 };
+			sortedRows.forEach(r => {
+				const badge = computeBadge(r);
+				if (badge.cls === 'critical') statusCounts.critical++;
+				else if (badge.cls === 'warning') statusCounts.warning++;
+				else statusCounts.ok++;
+			});
+			
+			// Build CSV with annotation header
+			let csv = '# =============================================================\n';
+			csv += '# BÁO CÁO DỰ BÁO NÂNG CẤP HẠ TẦNG TRẠM ĐỔI PIN - AI INSIGHTS\n';
+			csv += '# =============================================================\n';
+			csv += '# Ngày xuất: ' + new Date().toLocaleString('vi-VN', { dateStyle: 'full', timeStyle: 'medium' }) + '\n';
+			csv += '# Người xuất: Admin Dashboard\n';
+			csv += '# Tổng số trạm trong báo cáo: ' + sortedRows.length + '\n';
+			csv += '#   • Critical (Khẩn cấp): ' + statusCounts.critical + ' trạm\n';
+			csv += '#   • Warning (Cảnh báo): ' + statusCounts.warning + ' trạm\n';
+			csv += '#   • OK (An toàn): ' + statusCounts.ok + ' trạm\n';
+			csv += '#\n';
+			csv += '# CHÚ THÍCH CÁC CỘT:\n';
+			csv += '# - Station_ID: Mã số trạm trong hệ thống\n';
+			csv += '# - Station_Name: Tên đầy đủ của trạm đổi pin\n';
+			csv += '# - Address: Địa chỉ trạm (nếu có)\n';
+			csv += '# - Last_7_Days_Avg: Trung bình số lượt đổi pin/ngày (7 ngày gần nhất)\n';
+			csv += '# - Previous_7_Days_Avg: Trung bình số lượt đổi pin/ngày (7 ngày trước đó)\n';
+			csv += '# - Growth_Percent: Tỷ lệ tăng trưởng (%) so với tuần trước\n';
+			csv += '# - Capacity_Utilization: Tỷ lệ sử dụng công suất (%) = Last7Avg / SlotCapacity * 100\n';
+			csv += '# - Overload_Days: Số ngày bị quá tải (số booking > slot capacity) trong 14 ngày gần nhất\n';
+			csv += '# - Fail_Rate: Tỷ lệ giao dịch lỗi hoặc chưa hoàn thành (%), tính trong 7 ngày gần nhất\n';
+			csv += '# - Slot_Capacity: Tổng số slot (khe đổi pin) hiện có tại trạm\n';
+			csv += '# - Total_Transactions: Tổng số giao dịch hoàn thành trong 14 ngày\n';
+			csv += '# - Status: Mức độ khẩn cấp (OK = An toàn | Warning = Cần theo dõi | Critical = Khẩn cấp)\n';
+			csv += '# - Recommendation: Đề xuất hành động cụ thể từ AI\n';
+			csv += '#\n';
+			csv += '# LƯU Ý:\n';
+			csv += '# - Dữ liệu dựa trên swap logs 14 ngày gần nhất\n';
+			csv += '# - Trạm nào có < 7 giao dịch trong 14 ngày được coi là thiếu dữ liệu\n';
+			csv += '# - Khuyến nghị nâng cấp ưu tiên trạm Critical trước, sau đó đến Warning\n';
+			csv += '# - Định dạng: UTF-8 with BOM (mở bằng Excel hoặc LibreOffice Calc)\n';
+			csv += '# =============================================================\n';
+			csv += '\n';
+			
+			// Header row
+			const headers = ['Station_ID', 'Station_Name', 'Address', 'Last_7_Days_Avg', 'Previous_7_Days_Avg', 'Growth_Percent', 'Capacity_Utilization_%', 'Overload_Days', 'Fail_Rate', 'Slot_Capacity', 'Total_Transactions', 'Status', 'Recommendation'];
+			csv += headers.join(',') + '\n';
+			
+			// Data rows (sorted by status priority)
+			sortedRows.forEach(r => {
+				const badge = computeBadge(r);
+				const last7 = Number(r.last7Avg || 0);
+				const prev7 = Number(r.prev7Avg || 0);
+				const growth = prev7 > 0 ? ((last7 - prev7) / prev7 * 100).toFixed(1) : '0.0';
+				const slotCap = Number(r.slotCapacity || 1);
+				const capacityUtil = ((last7 / slotCap) * 100).toFixed(1);
+				
+				const row = [
+					r.stationId || r.Station_ID || 'N/A',
+					(r.stationName || r.StationName || ('Trạm #' + (r.stationId || r.Station_ID))).replace(/"/g, '""'),
+					(r.address || r.Address || 'Không rõ địa chỉ').replace(/"/g, '""'),
+					last7.toFixed(1),
+					prev7.toFixed(1),
+					growth + '%',
+					capacityUtil + '%',
+					r.overloadDays || 0,
+					r.failRate || '0%',
+					r.slotCapacity || 0,
+					r.sampleSize || r.totalTransactions || 0,
+					badge.label,
+					(r.recommendation || r.suggestion || 'Không có đề xuất').replace(/"/g, '""')
+				];
+				csv += row.map(v => '"' + String(v) + '"').join(',') + '\n';
+			});
+			
+			// Footer
+			csv += '\n';
+			csv += '# =============================================================\n';
+			csv += '# END OF REPORT\n';
+			csv += '# Generated by EV Battery Swap AI Infrastructure System\n';
+			csv += '# Copyright © 2024-2025 | For internal use only\n';
+			csv += '# =============================================================\n';
+			
+			const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }); // BOM for Excel UTF-8
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a'); 
+			a.href = url; 
+			a.download = filename || ('AI_Infrastructure_Report_' + new Date().toISOString().split('T')[0] + '.csv'); 
+			document.body.appendChild(a); 
+			a.click(); 
+			a.remove(); 
+			URL.revokeObjectURL(url);
+			alert('✅ Export CSV thành công!\n\n📊 Báo cáo bao gồm:\n• Critical: ' + statusCounts.critical + ' trạm\n• Warning: ' + statusCounts.warning + ' trạm\n• OK: ' + statusCounts.ok + ' trạm');
+		}
+
+		// ====================================================================
+		// PDF Export Feature REMOVED
+		// Only CSV export is supported for AI Infrastructure Report
+		// ====================================================================
+
+		// details modal + chart (uses Chart.js if available)
+		let currentChart = null;
+		async function openDetailsModal(stationId){
+			// FIX: Use cached data from window._aiData to get station-specific info (not re-fetch all stations)
+			const info = (window._aiData || []).find(x=> String(x.stationId||x.Station_ID) === String(stationId));
+			if (!info) {
+				alert('❌ Không tìm thấy dữ liệu cho trạm #' + stationId + '. Vui lòng refresh!');
+				return;
+			}
+			
+			document.getElementById('aiDetailsTitle').innerText = 'Chi tiết đề xuất — ' + (info.stationName ? info.stationName : ('Trạm #' + stationId));
+			document.getElementById('aiDetailsRecommendation').innerHTML = 'Đang xử lý...';
+			document.getElementById('aiDetailsExplanation').innerHTML = '';
+			document.getElementById('aiDetailsModal').style.display = 'flex';
+			
+			try {
+				// Use cached station info directly (no need to re-fetch)
+				
+				// Build summary stats section (always show even without chart)
+				let summaryHtml = '<div style="background:#e3f2fd;padding:12px;border-radius:6px;margin-bottom:12px;border-left:4px solid #1976d2"><strong>📊 Số liệu tóm tắt:</strong><br/>';
+				summaryHtml += '• <strong>Trung bình 7 ngày gần nhất</strong>: ' + (info.last7Avg != null ? Number(info.last7Avg).toFixed(1) : 'N/A') + ' lượt/ngày<br/>';
+				summaryHtml += '• <strong>Trung bình 7 ngày trước đó</strong>: ' + (info.prev7Avg != null ? Number(info.prev7Avg).toFixed(1) : 'N/A') + ' lượt/ngày<br/>';
+				summaryHtml += '• <strong>Số ngày quá tải</strong>: ' + (info.overloadDays != null ? info.overloadDays : 'N/A') + ' ngày (trong 14 ngày)<br/>';
+				summaryHtml += '• <strong>Tỉ lệ lỗi</strong>: ' + (info.failRate || '0%') + '<br/>';
+				summaryHtml += '• <strong>Tổng giao dịch</strong>: ' + (info.sampleSize || info.totalTransactions || 'N/A') + ' lượt<br/>';
+				summaryHtml += '• <strong>Slot capacity</strong>: ' + (info.slotCapacity || 'N/A') + ' slots</div>';
+				
+				// populate recommendation text with summary
+				document.getElementById('aiDetailsRecommendation').innerHTML = summaryHtml + '<div style="padding:10px;background:#fff3cd;border-left:4px solid #ff9800;border-radius:4px"><strong>💡 Đề xuất:</strong><br/>' + escapeHtml(info.recommendation || info.suggestion || info.message || 'Không có chi tiết') + '</div>';
+				
+				// Build detailed explanation
+				let explainHtml = '<strong>📖 Giải thích chi tiết:</strong><br/>';
+				const last7 = Number(info.last7Avg || 0).toFixed(1);
+				const prev7 = Number(info.prev7Avg || 0).toFixed(1);
+				const growth = prev7 > 0 ? (((last7 - prev7) / prev7) * 100).toFixed(1) : 'N/A';
+				explainHtml += `• Trạm này xử lý trung bình <strong>${last7} lượt đổi pin/ngày</strong> trong 7 ngày gần nhất, so với <strong>${prev7} lượt/ngày</strong> trong 7 ngày trước đó.<br/>`;
+				if (growth !== 'N/A') {
+					if (growth > 0) explainHtml += `• Xu hướng: <span style="color:#4caf50;font-weight:600">↗ Tăng ${growth}%</span> — nhu cầu đang tăng.<br/>`;
+					else if (growth < 0) explainHtml += `• Xu hướng: <span style="color:#f44336;font-weight:600">↘ Giảm ${Math.abs(growth)}%</span> — nhu cầu giảm.<br/>`;
+					else explainHtml += `• Xu hướng: <span style="color:#999;font-weight:600">→ Ổn định</span>.<br/>`;
+				}
+				const overload = info.overloadDays || 0;
+				if (overload > 0) explainHtml += `• Trong 14 ngày gần nhất, có <strong>${overload} ngày</strong> lượng booking vượt quá slot capacity → nguy cơ quá tải.<br/>`;
+				else explainHtml += `• Không có ngày nào quá tải trong 14 ngày gần nhất → năng lực đáp ứng tốt.<br/>`;
+				const failRate = info.failRate || '0%';
+				explainHtml += `• Tỉ lệ lỗi/chưa hoàn thành: <strong>${failRate}</strong>`;
+				if (parseFloat(failRate) > 10) explainHtml += ` — <span style="color:#f44336">cao, cần kiểm tra thiết bị</span>.`;
+				else explainHtml += ` — <span style="color:#4caf50">trong ngưỡng chấp nhận</span>.`;
+				explainHtml += '<br/>';
+				const sample = info.sampleSize || info.totalTransactions || 0;
+				if (sample < 7) explainHtml += `⚠️ <strong>Cảnh báo</strong>: Chỉ có ${sample} giao dịch trong 14 ngày — dữ liệu quá ít để dự báo chính xác. Thu thập thêm swap logs!<br/>`;
+				document.getElementById('aiDetailsExplanation').innerHTML = explainHtml;
+				
+				// draw chart or show friendly message
+				const ctx = document.getElementById('aiTrendChart');
+				if (!ctx) return;
+				
+				const hasDailyCounts = info.dailyCounts && Array.isArray(info.dailyCounts) && info.dailyCounts.length > 0;
+				
+				if (!hasDailyCounts) {
+					// No data - show friendly message in canvas
+					if (currentChart) { currentChart.destroy(); currentChart = null; }
+					const c2d = ctx.getContext('2d');
+					c2d.clearRect(0, 0, ctx.width, ctx.height);
+					c2d.fillStyle = '#666';
+					c2d.font = '14px Arial';
+					c2d.textAlign = 'center';
+					c2d.fillText('❌ Không có lịch sử giao dịch swap cho trạm này', ctx.width/2, ctx.height/2 - 20);
+					c2d.font = '12px Arial';
+					c2d.fillStyle = '#999';
+					c2d.fillText('Hãy thu thập thêm dữ liệu swap logs để dự báo chính xác!', ctx.width/2, ctx.height/2 + 10);
+					return;
+				}
+				
+				const labels = info.dailyCounts.map(x=> x.day || x.date || '');
+				const values = info.dailyCounts.map(x=> Number(x.count || x.swaps || 0));
+				
+				if (values.length === 1) {
+					// Only one data point - show as static value instead of chart
+					if (currentChart) { currentChart.destroy(); currentChart = null; }
+					const c2d = ctx.getContext('2d');
+					c2d.clearRect(0, 0, ctx.width, ctx.height);
+					c2d.fillStyle = '#333';
+					c2d.font = '16px Arial';
+					c2d.textAlign = 'center';
+					c2d.fillText('Chỉ có 1 ngày dữ liệu: ' + values[0] + ' swaps vào ' + labels[0], ctx.width/2, ctx.height/2);
+					return;
+				}
+				
+				// Render chart with Chart.js
+				if (window.Chart){
+					if (currentChart) currentChart.destroy();
+					currentChart = new Chart(ctx.getContext('2d'), { 
+						type: 'line', 
+						data: { 
+							labels: labels, 
+							datasets: [{ 
+								label: 'Swaps/day', 
+								data: values, 
+								borderColor: '#1976d2', 
+								backgroundColor: 'rgba(25,118,210,0.1)', 
+								fill: true,
+								tension: 0.3
+							}] 
+						}, 
+						options: { 
+							responsive: true, 
+							maintainAspectRatio: false,
+							plugins: {
+								title: { display: true, text: 'Xu hướng swap 14 ngày gần nhất' }
+							},
+							scales: {
+								y: { beginAtZero: true }
+							}
+						} 
+					});
+				} else {
+					// Chart.js not loaded yet - show text
+					const c2d = ctx.getContext('2d');
+					c2d.clearRect(0, 0, ctx.width, ctx.height);
+					c2d.fillStyle = '#666';
+					c2d.font = '12px Arial';
+					c2d.fillText('Chart.js đang tải... Dữ liệu: ' + JSON.stringify(values.slice(0,5)), 10, 30);
+				}
+			} catch(err){ 
+				document.getElementById('aiDetailsRecommendation').innerHTML = '<div style="color:#c62828">Lỗi tải chi tiết: ' + String(err) + '</div>'; 
+				// Clear chart on error
+				const ctx = document.getElementById('aiTrendChart');
+				if (ctx && currentChart) { currentChart.destroy(); currentChart = null; }
+			}
+		}
+
+		// wire controls
+		document.getElementById('aiRefresh').addEventListener('click', ()=> { 
+			// Clear search box and reset status filter
+			const searchBox = document.getElementById('aiSearch');
+			const statusFilter = document.getElementById('aiStatusFilter');
+			if (searchBox) searchBox.value = '';
+			if (statusFilter) statusFilter.value = '';
+			
+			// Remove any "no results" message
+			const noResultMsg = document.querySelector('.no-search-result');
+			if (noResultMsg) noResultMsg.remove();
+			
+			// Fetch fresh data
+			fetchUpgradeInsights();
+		});
+		document.getElementById('exportCsvBtn').addEventListener('click', async ()=>{
+			try {
+				// Export only VISIBLE (filtered) stations, not entire dataset
+				const visibleRows = Array.from(document.querySelectorAll('#aiTableContainer tbody tr')).filter(tr => tr.style.display !== 'none');
+				const visibleStationIds = visibleRows.map(tr => tr.dataset.id).filter(Boolean);
+				
+				if (visibleStationIds.length === 0) {
+					alert('⚠️ Không có trạm nào để export (tất cả đã bị filter). Vui lòng reset filter hoặc search!');
+					return;
+				}
+				
+				// Filter cached data by visible station IDs
+				const dataToExport = (window._aiData || []).filter(item => 
+					visibleStationIds.includes(String(item.stationId || item.Station_ID))
+				);
+				
+				if (dataToExport.length === 0) {
+					alert('⚠️ Không có dữ liệu để export. Vui lòng refresh!');
+					return;
+				}
+				
+				downloadCSV(dataToExport, 'ai_insights.csv');
+			} catch(e){ 
+				alert('❌ Export CSV thất bại: ' + e.message); 
+				console.error('CSV export error:', e);
+			}
+		});
+		
+		// PDF Export button removed - only CSV export is supported
+		
+		document.getElementById('aiCloseDetails').addEventListener('click', ()=> { document.getElementById('aiDetailsModal').style.display = 'none'; if (currentChart) { currentChart.destroy(); currentChart = null; } });
+		
+		// SEARCH FILTER: Search by station name (case-insensitive), search both ID and Name columns
+		document.getElementById('aiSearch').addEventListener('input', function(){
+			const q = this.value.trim().toLowerCase();
+			let visibleCount = 0;
+			
+			document.querySelectorAll('#aiTableContainer tbody tr').forEach(tr => {
+				// Search in both ID column (children[0]) and Name column (children[1])
+				const idText = (tr.children[0] && tr.children[0].innerText || '').toLowerCase();
+				const nameText = (tr.children[1] && tr.children[1].innerText || '').toLowerCase();
+				const match = !q || idText.indexOf(q) !== -1 || nameText.indexOf(q) !== -1;
+				tr.style.display = match ? '' : 'none';
+				if (match) visibleCount++;
+			});
+			
+			// Show "No results found" message if no matches
+			const container = document.getElementById('aiTableContainer');
+			let noResultMsg = container.querySelector('.no-search-result');
+			if (visibleCount === 0 && q) {
+				if (!noResultMsg) {
+					noResultMsg = document.createElement('div');
+					noResultMsg.className = 'no-search-result';
+					noResultMsg.style.cssText = 'padding:20px;text-align:center;color:#999;font-style:italic';
+					noResultMsg.innerHTML = '🔍 Không tìm thấy trạm phù hợp với từ khóa "<strong>' + escapeHtml(q) + '</strong>"';
+					container.appendChild(noResultMsg);
+				}
+			} else if (noResultMsg) {
+				noResultMsg.remove();
+			}
+		});
+		
+		// STATUS FILTER: Combined with search filter
+		document.getElementById('aiStatusFilter').addEventListener('change', function(){
+			const statusValue = this.value;
+			const searchQuery = (document.getElementById('aiSearch').value || '').trim().toLowerCase();
+			let visibleCount = 0;
+			
+			document.querySelectorAll('#aiTableContainer tbody tr').forEach(tr => {
+				// First check search query
+				const idText = (tr.children[0] && tr.children[0].innerText || '').toLowerCase();
+				const nameText = (tr.children[1] && tr.children[1].innerText || '').toLowerCase();
+				const matchSearch = !searchQuery || idText.indexOf(searchQuery) !== -1 || nameText.indexOf(searchQuery) !== -1;
+				
+				// Then check status filter
+				const badge = tr.querySelector('.ai-badge');
+				const cls = badge ? (badge.className || '') : '';
+				const matchStatus = !statusValue || cls.indexOf(statusValue) !== -1;
+				
+				// Show row only if BOTH search and status match
+				const show = matchSearch && matchStatus;
+				tr.style.display = show ? '' : 'none';
+				if (show) visibleCount++;
+			});
+			
+			// Update no-result message
+			const container = document.getElementById('aiTableContainer');
+			let noResultMsg = container.querySelector('.no-search-result');
+			if (visibleCount === 0 && (searchQuery || statusValue)) {
+				if (!noResultMsg) {
+					noResultMsg = document.createElement('div');
+					noResultMsg.className = 'no-search-result';
+					noResultMsg.style.cssText = 'padding:20px;text-align:center;color:#999;font-style:italic';
+					container.appendChild(noResultMsg);
+				}
+				let msg = '🔍 Không tìm thấy trạm phù hợp';
+				if (searchQuery && statusValue) msg += ' với từ khóa "<strong>' + escapeHtml(searchQuery) + '</strong>" và trạng thái "<strong>' + statusValue + '</strong>"';
+				else if (searchQuery) msg += ' với từ khóa "<strong>' + escapeHtml(searchQuery) + '</strong>"';
+				else if (statusValue) msg += ' với trạng thái "<strong>' + statusValue + '</strong>"';
+				noResultMsg.innerHTML = msg;
+			} else if (noResultMsg) {
+				noResultMsg.remove();
+			}
+		});
+
+		// try to load Chart.js dynamically if not present (small convenience loader)
+		if (typeof window.Chart === 'undefined'){
+			const s = document.createElement('script');
+			s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+			s.crossOrigin = 'anonymous';
+			s.onload = () => { console.info('Chart.js loaded'); };
+			s.onerror = () => { console.warn('Chart.js failed to load'); };
+			document.head.appendChild(s);
+		}
+
+		// jsPDF library loading removed - PDF export feature discontinued
+		// Only CSV export is supported for AI Infrastructure Report
+
+		// initial load
+		setTimeout(()=> fetchUpgradeInsights(), 150);
 
 		document.getElementById('refreshBtn').addEventListener('click', fetchStations);
 		document.getElementById('createBtn').addEventListener('click', async () => {
@@ -359,7 +960,19 @@
 						const form = new URLSearchParams(); form.append('action','delete'); form.append('id', cid);
 						res = await fetch(BASE + '/admin/charging', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
 					}
-					if (!res.ok) throw new Error('HTTP '+res.status);
+					if (!res.ok) {
+						// try to read JSON error body to show a friendly message
+						let text = await res.text();
+						try {
+							const obj = JSON.parse(text);
+							const errMsg = obj && (obj.error || obj.message) ? (obj.error || obj.message) : (obj.status || text || ('HTTP '+res.status));
+							// include hint if present for debugging (non-sensitive)
+							const hint = obj && obj.hint ? (' (hint: ' + JSON.stringify(obj.hint) + ')') : '';
+							throw new Error(errMsg + hint);
+						} catch(eparse) {
+							throw new Error(text || ('HTTP '+res.status));
+						}
+					}
 					fetchStations();
 				} catch (err) { alert('CS delete failed: '+err); }
 			}));
@@ -578,8 +1191,8 @@
 				if ((status||'').toLowerCase() === 'active') badgeColor = '#2e7d32';
 				if ((status||'').toLowerCase() === 'blocked') badgeColor = '#c62828';
 				const badgeHtml = `<div style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:12px;background:${badgeColor};color:#fff;font-size:12px;vertical-align:middle">${escapeHtml(status|| (role? 'Active' : ''))}</div>`;
-				const disabledAttr = ((status||'').toLowerCase() === 'blocked') ? 'disabled' : '';
-				html += `<tr data-uid="${id}"><td>${id}</td><td><div style="display:flex;align-items:center;gap:8px"><img src="${escapeHtml(avatar || DEFAULT_AVATAR)}" style="width:40px;height:40px;border-radius:50%"/> ${escapeHtml(u.fullName||u.fullname||u.FullName||'')}</div></td><td>${escapeHtml(u.email||'')}</td><td>${escapeHtml(u.phone||'')}</td><td>${escapeHtml(role||'')}${badgeHtml}</td><td><button class="btn" data-action="edit-user" ${disabledAttr}>Edit</button> <button class="btn btn-danger" data-action="delete-user" ${disabledAttr}>Delete</button></td></tr>`;
+				// allow Edit/Delete for blocked users as well (admins must be able to unblock)
+				html += `<tr data-uid="${id}"><td>${id}</td><td><div style="display:flex;align-items:center;gap:8px"><img src="${escapeHtml(avatar || DEFAULT_AVATAR)}" style="width:40px;height:40px;border-radius:50%"/> ${escapeHtml(u.fullName||u.fullname||u.FullName||'')}</div></td><td>${escapeHtml(u.email||'')}</td><td>${escapeHtml(u.phone||'')}</td><td>${escapeHtml(role||'')}${badgeHtml}</td><td><button class="btn" data-action="edit-user">Edit</button> <button class="btn btn-danger" data-action="delete-user">Delete</button></td></tr>`;
 			});
 			html += '</tbody></table>';
 			c.innerHTML = html;
@@ -603,8 +1216,11 @@
 			document.getElementById('uPhone').value = user.phone || '';
 			document.getElementById('uRole').value = user.role || 'Staff';
 			document.getElementById('userModal').dataset.userId = user.id || '';
-			document.getElementById('uStatus').value = user.status || user.Status || '';
-			// show inline status notice and disable actions if Blocked or None
+			// default status: if creating a new user from admin UI, default to Active so admin-created accounts are active immediately
+			let statusVal = user.status || user.Status || '';
+			if (!user || !user.id) statusVal = statusVal || 'Active';
+			document.getElementById('uStatus').value = statusVal;
+			// show inline status notice and disable actions if Blocked or None (only for existing users)
 			try {
 				let notice = document.getElementById('uStatusNotice');
 				if (!notice) {
@@ -615,17 +1231,27 @@
 					notice.style.color = '#333';
 					document.getElementById('uStatus').parentElement.appendChild(notice);
 				}
-				const st = (user.status || user.Status || '').toString().toLowerCase();
-				if (st === 'blocked') {
-					notice.innerText = 'Tài khoản này đang bị khóa — không thể thực hiện hành động';
-					notice.style.color = '#c62828';
-					document.getElementById('saveUserBtn').disabled = true;
-					document.getElementById('deleteUserBtn').disabled = true;
+				// compute current status from the value we set above (handles new user default)
+				const st = (document.getElementById('uStatus').value || '').toString().toLowerCase();
+				// store original status for unblock confirmation when saving
+				document.getElementById('userModal').dataset.originalStatus = st || '';
+				// If creating a new user (no id), do not block Save for missing/none status — admin-created accounts should be Active
+				if (!user || !user.id) {
+					notice.innerText = '';
+					document.getElementById('saveUserBtn').disabled = false;
+					document.getElementById('deleteUserBtn').disabled = true; // nothing to delete yet
 					document.getElementById('resetPasswordBtn').disabled = true;
+				} else if (st === 'blocked') {
+					notice.innerText = 'Tài khoản này đang bị khóa — Admin có thể mở khóa bằng cách thay đổi trạng thái thành Active';
+					notice.style.color = '#c62828';
+					// allow admins to perform unblock via this UI (buttons remain enabled)
+					document.getElementById('saveUserBtn').disabled = false;
+					document.getElementById('deleteUserBtn').disabled = false;
+					document.getElementById('resetPasswordBtn').disabled = false;
 				} else if (!st || st === 'none' || st === '(none)') {
 					notice.innerText = 'Tài khoản chưa kích hoạt — hãy yêu cầu hoàn tất đăng ký/verify';
 					notice.style.color = '#777';
-					document.getElementById('saveUserBtn').disabled = true; // require activation first
+					document.getElementById('saveUserBtn').disabled = true; // require activation first for existing self-registered users
 					document.getElementById('deleteUserBtn').disabled = false; // allow delete
 					document.getElementById('resetPasswordBtn').disabled = true;
 				} else {
@@ -660,13 +1286,17 @@
 				const roleSel = document.getElementById('uRole');
 				if (roleSel) {
 					if (user && (user.role||user.Role||'').toString().toLowerCase() === 'admin') {
+						// keep admin role immutable via this UI
 						roleSel.disabled = true;
-						// hide station selector for admins
-						document.getElementById('uStationId').parentElement.style.display = 'none';
 					} else {
 						roleSel.disabled = false;
-						document.getElementById('uStationId').parentElement.style.display = '';
 					}
+					// hide station selector for Admin and Manager (both don't have Station_ID)
+					try {
+						const ur = (user && (user.role||user.Role||'') || '').toString().toLowerCase();
+						if (ur === 'admin' || ur === 'manager') document.getElementById('uStationId').parentElement.style.display = 'none';
+						else document.getElementById('uStationId').parentElement.style.display = '';
+					} catch(e) { /* ignore */ }
 				}
 			} catch(e) {}
 			document.getElementById('userModal').style.display = 'flex';
@@ -716,6 +1346,11 @@
 			const password = document.getElementById('uPassword') ? document.getElementById('uPassword').value : '';
 			if (!fullName || !email) { alert('Name and email required'); return; }
 			try {
+				// if original status was 'blocked' and admin is setting to 'Active', ask for confirmation
+				const orig = (document.getElementById('userModal').dataset.originalStatus || '').toString().toLowerCase();
+				if (orig === 'blocked' && (status||'').toString().toLowerCase() === 'active') {
+					if (!confirm('Are you sure you want to unblock this user?')) return;
+				}
 				const method = id && Number(id) > 0 ? 'PUT' : 'POST';
 				const url = API_USERS;
 				// determine avatar mode: url or upload
