@@ -1,0 +1,1425 @@
+d<!DOCTYPE html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <title>Battery Swap System - Demo</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+            }
+            h1 {
+                color: #2c3e50;
+            }
+            h2 {
+                color: #34495e;
+            }
+            .card {
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 20px;
+                max-width: 500px;
+            }
+            input, select, button {
+                margin: 5px 0;
+                padding: 8px;
+                width: 100%;
+                border-radius: 4px;
+                border: 1px solid #aaa;
+            }
+            button {
+                background: #3498db;
+                color: white;
+                border: none;
+                cursor: pointer;
+            }
+            button:hover {
+                background: #2980b9;
+            }
+            pre {
+                background: #f8f9fa;
+                padding: 10px;
+                border-radius: 5px;
+                max-width: 600px;
+                white-space: pre-wrap;
+            }
+            .package-item {
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                padding: 10px;
+                margin: 5px 0;
+            }
+        </style>
+    </head>
+    <body>
+
+        <h1>⚡ Battery Swap Demo</h1>
+
+        <!-- Đăng nhập -->
+        <div class="card">
+            <h2>Đăng nhập</h2>
+            <input type="text" id="loginEmail" placeholder="Email" />
+            <input type="password" id="loginPassword" placeholder="Mật khẩu" />
+            <button onclick="login()">Đăng nhập</button>
+            <!-- Quên mật khẩu link (mở modal) -->
+            <div style="margin-top:8px;">
+                <a href="#" id="forgotLink" onclick="openForgotModal(); return false;">Quên mật khẩu?</a>
+            </div>
+            <pre id="loginResult"></pre>
+            <!-- Resend verification UI (shown when account is pending activation) -->
+            <div id="resendSection" style="display:none; margin-top:8px;">
+                <button id="resendBtn" style="background:#f39c12;">Resend verification email</button>
+                <div id="resendMessage" style="margin-top:6px; color:#333; font-size:0.95em;"></div>
+            </div>
+            <!-- OTP verification UI for pending accounts -->
+            <div id="otpVerifySection" style="display:none; margin-top:8px;">
+                <div style="margin-bottom:6px;">Enter OTP sent to <strong id="otpVerifyEmailDisplay"></strong></div>
+                <input type="text" id="otpVerifyCode" placeholder="Enter 6-digit OTP" maxlength="6" style="width:100%; padding:8px; margin-bottom:6px;" />
+                <button id="otpVerifyBtn" style="background:#27ae60;">Verify OTP</button>
+                <div id="otpVerifyMessage" style="margin-top:6px; color:#333; font-size:0.95em;"></div>
+            </div>
+            
+            <!-- Nút xem Profile (ẩn mặc định, hiện sau khi login) -->
+            <div id="profileSection" style="display:none; margin-top:10px;">
+                <button onclick="openProfileModal()" style="background:#27ae60;">👤 Xem Profile</button>
+            </div>
+        </div>
+
+        <!-- Đăng ký -->
+        <div class="card">
+            <h2>Đăng ký</h2>
+            <input type="text" id="regName" placeholder="Họ tên" />
+            <input type="text" id="regPhone" placeholder="Số điện thoại" />
+            <input type="text" id="regEmail" placeholder="Email" />
+            <input type="password" id="regPassword" placeholder="Mật khẩu" />
+            <button onclick="openRegistrationOtpModal()">Đăng ký</button>
+            <pre id="regResult"></pre>
+        </div>
+
+        <!-- Danh sách gói pin -->
+        <div class="card">
+            <h2>Xem gói pin</h2>
+            <button onclick="getPackages()">Lấy danh sách gói pin</button>
+            <div id="packagesList"></div>
+            <pre id="packagesResult"></pre>
+        </div>
+
+        <!-- Liên kết xe -->
+        <div class="card">
+            <h2>Liên kết xe</h2>
+
+            <label for="model">Mẫu xe VinFast:</label>
+            <select id="model">
+                <option value="Feliz S">Feliz S</option>
+                <option value="Evo200">Evo200</option>
+                <option value="Klara S">Klara S</option>
+                <option value="Theon S">Theon S</option>
+                <option value="Vento S">Vento S</option>
+            </select>
+
+            <label for="batteryType">Loại pin:</label>
+            <select id="batteryType">
+                <option value="Lithium-ion 52V 22Ah">Lithium-ion 52V 22Ah</option>
+                <option value="LFP 72V 117Ah">LFP 72V 117Ah</option>
+            </select>
+
+            <label for="carDoc">Ảnh cà vẹt xe:</label>
+            <input type="file" id="carDoc" accept="image/*" onchange="previewCarDoc(event)" />
+
+            <!-- Hiển thị ảnh preview -->
+            <div id="previewBox" style="margin-top:10px; display:none;">
+                <p><b>Ảnh đã chọn:</b></p>
+                <img id="previewImg" src="" alt="Preview cà vẹt" style="max-width:100%; border:1px solid #ccc; border-radius:5px;" />
+            </div>
+
+            <button onclick="linkVehicle()">Liên kết xe</button>
+            <pre id="linkResult"></pre>
+        </div>
+
+        <!-- Comment card (Driver only) -->
+        <div class="card" id="commentCard" style="display:none;">
+            <h2>Gửi nhận xét (Chỉ dành cho Driver)</h2>
+            <pre id="commentStatus"></pre>
+            <label for="commentStation">Chọn giao dịch:</label>
+            <select id="commentStation"></select>
+            <label for="commentContent">Nội dung:</label>
+            <textarea id="commentContent" rows="4" style="width:100%; padding:8px; border-radius:4px; border:1px solid #aaa;"></textarea>
+            <button onclick="submitComment()">Gửi nhận xét</button>
+            <pre id="commentResult"></pre>
+        </div>
+
+        <!-- Admin Controls (Admin only) -->
+        <div class="card" id="adminCommentControls" style="display:none;">
+            <h2>Admin: Quản lý nhận xét</h2>
+            <button onclick="fetchCommentsForAdmin()">Lấy nhận xét</button>
+            <!-- Open Admin Dashboard button (hidden by default, shown for Admin) -->
+            <button id="openAdminDashboardBtn" style="display:none; margin-top:8px; background:#0d6efd;" onclick="openAdminDashboard()">🛠️ Open Admin Dashboard</button>
+            <pre id="commentsList"></pre>
+        </div>
+
+        <!-- Forgot Password Modal (simple, client-side) -->
+        <div id="forgotModal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999;">
+            <div style="background:white; width:400px; max-width:90%; margin:80px auto; padding:25px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+                <h3 id="forgotTitle">Quên mật khẩu</h3>
+                <div id="forgotStep1">
+                    <p>Nhập email đã đăng ký để nhận OTP.</p>
+                    <input type="text" id="fpEmail" placeholder="Email" style="width:100%; padding:8px; margin-bottom:8px;" />
+                    <button onclick="fpSendOtp()">Gửi OTP</button>
+                </div>
+                <div id="forgotStep2" style="display:none; margin-top:10px;">
+                    <p>Nhập mã OTP đã nhận qua email.</p>
+                    <input type="text" id="fpOtp" placeholder="OTP" style="width:100%; padding:8px; margin-bottom:8px;" />
+                    <button onclick="fpVerifyOtp()">Xác thực OTP</button>
+                </div>
+                <div id="forgotStep3" style="display:none; margin-top:10px;">
+                    <p>Nhập mật khẩu mới.</p>
+                    <input type="password" id="fpNewPassword" placeholder="Mật khẩu mới" style="width:100%; padding:8px; margin-bottom:8px;" />
+                    <button onclick="fpResetPassword()">Đổi mật khẩu</button>
+                </div>
+                <div id="forgotMsg" style="margin-top:10px; color:green;"></div>
+                <div style="text-align:right; margin-top:12px;"><button onclick="closeForgotModal()">Đóng</button></div>
+            </div>
+        </div>
+
+        <!-- Registration OTP Modal (giống Forgot Password) -->
+        <div id="registrationOtpModal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999;">
+            <div style="background:white; width:400px; max-width:90%; margin:80px auto; padding:25px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+                <h3 id="regOtpTitle">📧 Xác thực Email</h3>
+                <div id="regOtpStep1">
+                    <p>Nhập email đã đăng ký để nhận mã OTP:</p>
+                    <input type="text" id="regOtpEmail" placeholder="Email" style="width:100%; padding:8px; margin-bottom:8px;" readonly />
+                    <button onclick="regOtpSendOtp()">Gửi mã OTP</button>
+                </div>
+                <div id="regOtpStep2" style="display:none; margin-top:10px;">
+                    <p>Nhập mã OTP đã được gửi đến <strong id="regOtpEmailDisplay"></strong></p>
+                    <input type="text" id="regOtpCode" placeholder="Nhập 6 chữ số" maxlength="6" style="width:100%; padding:8px; margin-bottom:8px;" />
+                    <button onclick="regOtpVerifyAndRegister()">Xác thực và Đăng ký</button>
+                </div>
+                <div id="regOtpMsg" style="margin-top:10px; color:green;"></div>
+                <div style="text-align:right; margin-top:12px;">
+                    <button onclick="closeRegistrationOtpModal()">Đóng</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 👤 PROFILE MODAL -->
+        <div id="profileModal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; overflow:auto;">
+            <div style="background:white; width:500px; max-width:90%; margin:50px auto; padding:25px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+                <h3>👤 Thông Tin Profile</h3>
+                
+                <!-- View Mode -->
+                <div id="profileViewMode">
+                    <div style="margin-bottom:15px;">
+                        <strong>Họ và tên:</strong> <span id="viewFullName">-</span>
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <strong>Email:</strong> <span id="viewEmail">-</span>
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <strong>Số điện thoại:</strong> <span id="viewPhone">-</span>
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <strong>Role:</strong> <span id="viewRole">-</span>
+                    </div>
+                    
+                    <!-- Package Info (chỉ hiện cho Driver) -->
+                    <div id="packageInfo" style="display:none; background:#e8f5e9; padding:10px; border-radius:5px; margin:15px 0;">
+                        <h4 style="margin:0 0 10px 0;">� Gói Pin Hiện Tại</h4>
+                        <div style="margin-bottom:8px;">
+                            <strong>Tên gói:</strong> <span id="viewPackageName">-</span>
+                        </div>
+                        <div style="margin-bottom:8px;">
+                            <strong>Ngày bắt đầu:</strong> <span id="viewPackageStart">-</span>
+                        </div>
+                        <div style="margin-bottom:8px;">
+                            <strong>Ngày kết thúc:</strong> <span id="viewPackageEnd">-</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:15px;">
+                        <strong>Avatar URL:</strong> <span id="viewAvatarUrl">-</span>
+                    </div>
+                    
+                    <div style="text-align:right; margin-top:20px;">
+                        <button onclick="switchToEditMode()" style="background:#f39c12; width:auto; margin-right:10px;">✏️ Sửa Profile</button>
+                        <button onclick="closeProfileModal()" style="background:#95a5a6; width:auto;">Đóng</button>
+                    </div>
+                </div>
+                
+                <!-- Edit Mode -->
+                <div id="profileEditMode" style="display:none;">
+                    <div style="margin-bottom:15px;">
+                        <label><strong>Họ và tên:</strong></label>
+                        <input type="text" id="editFullName" style="width:100%; padding:8px; border-radius:4px; border:1px solid #aaa;" />
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <label><strong>Email:</strong></label>
+                        <input type="text" id="editEmail" readonly style="width:100%; padding:8px; border-radius:4px; border:1px solid #ddd; background:#f5f5f5;" />
+                        <small style="color:#666;">Email không thể thay đổi</small>
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <label><strong>Số điện thoại:</strong></label>
+                        <input type="text" id="editPhone" style="width:100%; padding:8px; border-radius:4px; border:1px solid #aaa;" />
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <label><strong>Role:</strong></label>
+                        <input type="text" id="editRole" readonly style="width:100%; padding:8px; border-radius:4px; border:1px solid #ddd; background:#f5f5f5;" />
+                        <small style="color:#666;">Role không thể thay đổi</small>
+                    </div>
+                    
+                    <!-- Avatar Section với 2 options -->
+                    <div style="margin-bottom:15px; border:1px solid #ddd; padding:15px; border-radius:5px; background:#f9f9f9;">
+                        <label><strong>Avatar:</strong></label>
+                        
+                        <!-- Option 1: URL -->
+                        <div style="margin-top:10px;">
+                            <label style="font-weight:normal;">
+                                <input type="radio" name="avatarOption" value="url" checked onchange="toggleAvatarInput()"> 
+                                Nhập URL từ Internet
+                            </label>
+                            <input type="text" id="editAvatarUrl" placeholder="https://i.pravatar.cc/150?img=12" 
+                                   style="width:100%; padding:8px; border-radius:4px; border:1px solid #aaa; margin-top:5px;" />
+                        </div>
+                        
+                        <!-- Option 2: Upload File -->
+                        <div style="margin-top:10px;">
+                            <label style="font-weight:normal;">
+                                <input type="radio" name="avatarOption" value="file" onchange="toggleAvatarInput()"> 
+                                Upload ảnh từ máy
+                            </label>
+                            <input type="file" id="editAvatarFile" accept="image/*" 
+                                   style="width:100%; padding:8px; border-radius:4px; border:1px solid #aaa; margin-top:5px; display:none;" 
+                                   onchange="previewAvatar(event)" />
+                        </div>
+                        
+                        <!-- Preview Avatar -->
+                        <div id="avatarPreview" style="margin-top:10px; display:none;">
+                            <p style="margin:5px 0;"><strong>Preview:</strong></p>
+                            <img id="avatarPreviewImg" src="" alt="Avatar preview" 
+                                 style="width:100px; height:100px; border-radius:50%; border:2px solid #ddd; object-fit:cover;" />
+                        </div>
+                        
+                        <!-- Upload progress -->
+                        <div id="uploadProgress" style="margin-top:10px; display:none; color:#1976d2;">
+                            <p>⏳ Đang upload ảnh...</p>
+                        </div>
+                    </div>
+                    
+                    <div id="profileMsg" style="margin:15px 0; padding:10px; border-radius:5px; display:none;"></div>
+                    
+                    <div style="text-align:right; margin-top:20px;">
+                        <button onclick="saveProfile()" style="background:#27ae60; width:auto; margin-right:10px;">💾 Lưu</button>
+                        <button onclick="switchToViewMode()" style="background:#95a5a6; width:auto;">❌ Hủy</button>
+                    </div>
+                </div>
+                
+                <div id="profileLoading" style="text-align:center; padding:20px; display:none;">
+                    <p>Đang tải thông tin...</p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // �👉 BASE_URL - lấy context path của ứng dụng
+            // Ví dụ: http://localhost:8080/webAPI => BASE_URL = http://localhost:8080/webAPI
+            const BASE_URL = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+            // URL đến Admin Dashboard (backend static page under the same app context).
+            // Default: use the app BASE_URL + '/admin' so it opens the admin page under the same webapp context.
+            // To override (e.g. if frontend admin is hosted elsewhere) set window.ADMIN_DASHBOARD_URL before login.
+            window.ADMIN_DASHBOARD_URL = window.ADMIN_DASHBOARD_URL || (BASE_URL + '/admin');
+            console.log('DEBUG - BASE_URL:', BASE_URL);
+            console.log('DEBUG - Full URL:', window.location.href);
+
+            // Try to open admin dashboard safely: probe URL with HEAD, if 200 open in new tab, else show friendly message.
+            async function openAdminDashboard() {
+                const url = window.ADMIN_DASHBOARD_URL || (window.location.origin + '/admin');
+                console.log('Attempting to open Admin Dashboard at', url);
+                try {
+                    // Use fetch HEAD to probe. Some servers don't allow HEAD; fallback to GET with range.
+                    let ok = false;
+                    try {
+                        const resp = await fetch(url, { method: 'HEAD', mode: 'same-origin' });
+                        ok = resp && resp.ok;
+                    } catch (e) {
+                        // try GET but only request small bytes to avoid loading large pages
+                        try {
+                            const resp2 = await fetch(url, { method: 'GET', mode: 'same-origin' });
+                            ok = resp2 && resp2.ok;
+                        } catch (e2) {
+                            ok = false;
+                        }
+                    }
+
+                    if (ok) {
+                        window.open(url, '_blank');
+                        return;
+                    }
+                } catch (err) {
+                    console.warn('Error probing admin dashboard URL', err);
+                }
+
+                // If not ok, show a helpful modal/in-page note to the admin instead of opening a 404
+                showAdminUnavailable(url);
+            }
+
+            function showAdminUnavailable(url) {
+                // try to reuse or create a small in-page dialog
+                let dlg = document.getElementById('adminUnavailableDlg');
+                if (!dlg) {
+                    dlg = document.createElement('div');
+                    dlg.id = 'adminUnavailableDlg';
+                    dlg.style.position = 'fixed';
+                    dlg.style.left = '20px';
+                    dlg.style.right = '20px';
+                    dlg.style.top = '20px';
+                    dlg.style.maxWidth = '720px';
+                    dlg.style.margin = '0 auto';
+                    dlg.style.background = '#fff';
+                    dlg.style.border = '1px solid #ccc';
+                    dlg.style.padding = '16px';
+                    dlg.style.zIndex = '10000';
+                    dlg.style.boxShadow = '0 6px 24px rgba(0,0,0,0.12)';
+                    dlg.innerHTML = `<h3>Admin Dashboard hiện không thể mở</h3>
+                        <p>Đã thử mở: <code>${url}</code> nhưng server trả về lỗi (404 hoặc không reachable).</p>
+                        <p>Hướng khắc phục nhanh:</p>
+                        <ul>
+                          <li>Kiểm tra xem frontend Admin (React/Vite) đã chạy chưa. Ví dụ: <code>npm run dev</code> trong folder frontend và đảm bảo nó phục vụ <code>/admin</code>.</li>
+                          <li>Nếu Admin được host ở URL khác, bạn có thể cấu hình biến <code>window.ADMIN_DASHBOARD_URL</code> trong console trình duyệt trước khi đăng nhập. Ví dụ:<br><code>window.ADMIN_DASHBOARD_URL = 'http://localhost:5173/admin'</code></li>
+                          <li>Hoặc mở đường dẫn trực tiếp bằng tay trong trình duyệt và kiểm tra logs của frontend server.</li>
+                        </ul>
+                        <div style="text-align:right; margin-top:10px;">
+                          <button id="adminUnavailableOpenManual" style="margin-right:8px; background:#0d6efd; color:#fff; padding:8px 12px; border-radius:6px; border:none;">Mở thủ công</button>
+                          <button id="adminUnavailableClose" style="background:#95a5a6; color:#fff; padding:8px 12px; border-radius:6px; border:none;">Đóng</button>
+                        </div>`;
+                    document.body.appendChild(dlg);
+
+                    document.getElementById('adminUnavailableClose').addEventListener('click', () => { dlg.remove(); });
+                    document.getElementById('adminUnavailableOpenManual').addEventListener('click', () => { window.open(url, '_blank'); });
+                }
+            }
+            
+            let loggedUserId = null; // lưu userId sau login
+            let loggedUserRole = null; // role của user (driver/staff/admin)
+            let currentProfile = null; // lưu profile data
+
+            // ===== PROFILE FUNCTIONS =====
+            async function openProfileModal() {
+                if (!loggedUserId) {
+                    alert('⚠️ Vui lòng đăng nhập trước!');
+                    return;
+                }
+                
+                const modal = document.getElementById('profileModal');
+                const loading = document.getElementById('profileLoading');
+                const viewMode = document.getElementById('profileViewMode');
+                const editMode = document.getElementById('profileEditMode');
+                
+                // Show modal and loading
+                modal.style.display = 'block';
+                loading.style.display = 'block';
+                viewMode.style.display = 'none';
+                editMode.style.display = 'none';
+                
+                try {
+                    // Fetch profile from API
+                    const res = await fetch(`${BASE_URL}/api/profile?userId=${loggedUserId}`);
+                    const result = await res.json();
+                    
+                    console.log('Profile API response:', result);
+                    
+                    if (!result.success) {
+                        alert('❌ Không thể tải profile: ' + result.message);
+                        closeProfileModal();
+                        return;
+                    }
+                    
+                    currentProfile = result.data;
+                    
+                    // Populate view mode
+                    document.getElementById('viewFullName').textContent = currentProfile.fullName || '-';
+                    document.getElementById('viewEmail').textContent = currentProfile.email || '-';
+                    document.getElementById('viewPhone').textContent = currentProfile.phone || '-';
+                    document.getElementById('viewRole').textContent = currentProfile.role || '-';
+                    document.getElementById('viewAvatarUrl').textContent = currentProfile.avatarUrl || 'Chưa có';
+                    
+                    // Show package info if Driver and has package
+                    if (currentProfile.role && currentProfile.role.toLowerCase() === 'driver' && currentProfile.currentPackageId) {
+                        document.getElementById('packageInfo').style.display = 'block';
+                        document.getElementById('viewPackageName').textContent = currentProfile.packageName || '-';
+                        document.getElementById('viewPackageStart').textContent = currentProfile.packageStartDate || '-';
+                        document.getElementById('viewPackageEnd').textContent = currentProfile.packageEndDate || '-';
+                    } else {
+                        document.getElementById('packageInfo').style.display = 'none';
+                    }
+                    
+                    // Show view mode
+                    loading.style.display = 'none';
+                    viewMode.style.display = 'block';
+                    
+                } catch (err) {
+                    console.error('Error loading profile:', err);
+                    alert('❌ Lỗi khi tải profile: ' + err);
+                    closeProfileModal();
+                }
+            }
+
+            function closeProfileModal() {
+                document.getElementById('profileModal').style.display = 'none';
+            }
+
+            function switchToEditMode() {
+                if (!currentProfile) return;
+                
+                // Populate edit fields
+                document.getElementById('editFullName').value = currentProfile.fullName || '';
+                document.getElementById('editEmail').value = currentProfile.email || '';
+                document.getElementById('editPhone').value = currentProfile.phone || '';
+                document.getElementById('editRole').value = currentProfile.role || '';
+                document.getElementById('editAvatarUrl').value = currentProfile.avatarUrl || '';
+                
+                // Reset avatar input
+                document.querySelector('input[name="avatarOption"][value="url"]').checked = true;
+                toggleAvatarInput();
+                document.getElementById('avatarPreview').style.display = 'none';
+                
+                // Switch modes
+                document.getElementById('profileViewMode').style.display = 'none';
+                document.getElementById('profileEditMode').style.display = 'block';
+                document.getElementById('profileMsg').style.display = 'none';
+            }
+
+            function switchToViewMode() {
+                document.getElementById('profileEditMode').style.display = 'none';
+                document.getElementById('profileViewMode').style.display = 'block';
+            }
+
+            // Toggle giữa URL input và File input
+            function toggleAvatarInput() {
+                const option = document.querySelector('input[name="avatarOption"]:checked').value;
+                const urlInput = document.getElementById('editAvatarUrl');
+                const fileInput = document.getElementById('editAvatarFile');
+                
+                if (option === 'url') {
+                    urlInput.style.display = 'block';
+                    fileInput.style.display = 'none';
+                    document.getElementById('avatarPreview').style.display = 'none';
+                } else {
+                    urlInput.style.display = 'none';
+                    fileInput.style.display = 'block';
+                }
+            }
+
+            // Preview avatar khi user chọn file
+            function previewAvatar(event) {
+                const file = event.target.files[0];
+                if (!file) {
+                    document.getElementById('avatarPreview').style.display = 'none';
+                    return;
+                }
+                
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    alert('⚠️ Vui lòng chọn file ảnh (jpg, png, gif)');
+                    event.target.value = '';
+                    return;
+                }
+                
+                // Validate file size (max 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('⚠️ File quá lớn! Vui lòng chọn ảnh nhỏ hơn 10MB');
+                    event.target.value = '';
+                    return;
+                }
+                
+                // Preview image
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('avatarPreviewImg').src = e.target.result;
+                    document.getElementById('avatarPreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+
+            async function saveProfile() {
+                if (!loggedUserId) return;
+                
+                const fullName = document.getElementById('editFullName').value.trim();
+                const phone = document.getElementById('editPhone').value.trim();
+                
+                if (!fullName) {
+                    alert('⚠️ Họ và tên không được để trống!');
+                    return;
+                }
+                
+                const msgBox = document.getElementById('profileMsg');
+                msgBox.textContent = 'Đang xử lý...';
+                msgBox.style.background = '#e3f2fd';
+                msgBox.style.color = '#1976d2';
+                msgBox.style.display = 'block';
+                
+                try {
+                    let avatarUrl = '';
+                    
+                    // Check avatar option
+                    const avatarOption = document.querySelector('input[name="avatarOption"]:checked').value;
+                    
+                    if (avatarOption === 'url') {
+                        // Use URL directly
+                        avatarUrl = document.getElementById('editAvatarUrl').value.trim();
+                    } else {
+                        // Upload file first
+                        const fileInput = document.getElementById('editAvatarFile');
+                        if (fileInput.files.length > 0) {
+                            msgBox.textContent = 'Đang upload ảnh...';
+                            document.getElementById('uploadProgress').style.display = 'block';
+                            
+                            avatarUrl = await uploadAvatar(fileInput.files[0]);
+                            
+                            document.getElementById('uploadProgress').style.display = 'none';
+                            
+                            if (!avatarUrl) {
+                                msgBox.textContent = '❌ Upload ảnh thất bại!';
+                                msgBox.style.background = '#ffebee';
+                                msgBox.style.color = '#c62828';
+                                return;
+                            }
+                            
+                            msgBox.textContent = 'Ảnh đã upload, đang lưu profile...';
+                        }
+                    }
+                    
+                    // Save profile with avatar URL
+                    const res = await fetch(`${BASE_URL}/api/profile/update`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: loggedUserId,
+                            fullName: fullName,
+                            phone: phone,
+                            avatarUrl: avatarUrl
+                        })
+                    });
+                    
+                    const result = await res.json();
+                    console.log('Update profile response:', result);
+                    
+                    if (result.success) {
+                        msgBox.textContent = '✅ ' + result.message;
+                        msgBox.style.background = '#e8f5e9';
+                        msgBox.style.color = '#2e7d32';
+                        
+                        // Update current profile
+                        currentProfile.fullName = fullName;
+                        currentProfile.phone = phone;
+                        currentProfile.avatarUrl = avatarUrl;
+                        
+                        // Update view mode
+                        document.getElementById('viewFullName').textContent = fullName;
+                        document.getElementById('viewPhone').textContent = phone;
+                        document.getElementById('viewAvatarUrl').textContent = avatarUrl || 'Chưa có';
+                        
+                        // Switch back to view mode after 1.5s
+                        setTimeout(() => {
+                            switchToViewMode();
+                        }, 1500);
+                    } else {
+                        msgBox.textContent = '❌ ' + result.message;
+                        msgBox.style.background = '#ffebee';
+                        msgBox.style.color = '#c62828';
+                    }
+                    
+                } catch (err) {
+                    console.error('Error saving profile:', err);
+                    msgBox.textContent = '❌ Lỗi: ' + err;
+                    msgBox.style.background = '#ffebee';
+                    msgBox.style.color = '#c62828';
+                }
+            }
+
+            // Upload avatar file to server
+            async function uploadAvatar(file) {
+                try {
+                    const formData = new FormData();
+                    formData.append('avatar', file);
+                    
+                    const res = await fetch(`${BASE_URL}/api/upload-avatar`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await res.json();
+                    console.log('Upload avatar response:', result);
+                    
+                    if (result.success) {
+                        // Return full URL
+                        return window.location.origin + result.avatarUrl;
+                    } else {
+                        console.error('Upload failed:', result.message);
+                        alert('❌ Upload thất bại: ' + result.message);
+                        return null;
+                    }
+                    
+                } catch (err) {
+                    console.error('Error uploading avatar:', err);
+                    alert('❌ Lỗi upload: ' + err);
+                    return null;
+                }
+            }
+
+            // ===== Login =====
+            async function login() {
+            const email = document.getElementById("loginEmail").value.trim();
+            const password = document.getElementById("loginPassword").value.trim();
+            try {
+            const res = await fetch(`${BASE_URL}/api/login`, {
+            method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ email, password }),
+                    credentials: "include"
+            });
+            const text = await res.text();
+            document.getElementById("loginResult").textContent = text;
+            try {
+            const data = JSON.parse(text);
+            loggedUserId = data?.user?.id || null;
+            loggedUserRole = (data?.user?.role || '').toLowerCase();
+            
+            console.log('DEBUG login - userId:', loggedUserId, 'role:', loggedUserRole);
+            
+            // ✅ Show Profile button after successful login
+            if (loggedUserId) {
+                document.getElementById('profileSection').style.display = 'block';
+            } else {
+                document.getElementById('profileSection').style.display = 'none';
+            }
+
+            // If login failed due to pending activation, show resend UI
+            try {
+                const pendingMsg = (data?.message || '').toLowerCase();
+                if (!loggedUserId && data?.status === 'fail' && pendingMsg.includes('pending activation')) {
+                    // Show OTP verify form (preferred) and the resend button as backup
+                    showOtpVerify(email, data.message || 'Your account is pending activation/verification');
+                    showResend(email, 'If you did not receive the email, you can resend it.');
+                } else {
+                    const rs = document.getElementById('resendSection'); if (rs) rs.style.display = 'none';
+                    const os = document.getElementById('otpVerifySection'); if (os) os.style.display = 'none';
+                }
+            } catch (ex) { console.warn('Error handling resend UI:', ex); }
+            
+            // Hide all comment-related UI by default
+            const commentCard = document.getElementById('commentCard');
+            const adminCtl = document.getElementById('adminCommentControls');
+            
+            if (loggedUserRole === 'admin') {
+                // Admin: hide comment form, show only admin controls
+                console.log('DEBUG - User is Admin, showing admin controls');
+                if (commentCard) commentCard.style.display = 'none';
+                if (adminCtl) adminCtl.style.display = 'block';
+                // Show Open Admin Dashboard button if present
+                try {
+                    const adminBtn = document.getElementById('openAdminDashboardBtn');
+                    if (adminBtn) {
+                        adminBtn.style.display = 'inline-block';
+                        // set tooltip
+                        adminBtn.title = 'Mở Admin Dashboard (mở tab mới)';
+                    }
+                } catch (ex) { console.warn('Unable to show admin dashboard button', ex); }
+            } else if (loggedUserRole === 'driver') {
+                // Driver: show comment form (will check swap status), hide admin controls
+                console.log('DEBUG - User is Driver, will check swap status');
+                if (commentCard) commentCard.style.display = 'block';
+                if (adminCtl) adminCtl.style.display = 'none';
+                // Check if driver has completed swaps
+                loadStationsForSelect();
+            } else {
+                // Staff, Manager or other: hide everything (no comment permission)
+                console.log('DEBUG - User is Staff/Manager/Other (role=' + loggedUserRole + '), hiding all comment UI');
+                if (commentCard) commentCard.style.display = 'none';
+                if (adminCtl) adminCtl.style.display = 'none';
+            }
+            } catch {
+            loggedUserId = null;
+            loggedUserRole = null;
+            }
+            } catch (err) {
+            document.getElementById("loginResult").textContent = "❌ Lỗi: " + err;
+            }
+            }
+
+            // ===== Resend verification (for pending accounts) =====
+            // Show resend UI when login response indicates pending activation.
+            function showResend(email, message) {
+                const section = document.getElementById('resendSection');
+                const msg = document.getElementById('resendMessage');
+                const btn = document.getElementById('resendBtn');
+                if (!section || !btn || !msg) return;
+                section.style.display = 'block';
+                btn.disabled = false;
+                btn.onclick = async function (e) {
+                    e.preventDefault();
+                    await resendVerification(email);
+                };
+                msg.textContent = message || '';
+            }
+
+            async function resendVerification(email) {
+                const btn = document.getElementById('resendBtn');
+                const msg = document.getElementById('resendMessage');
+                if (!btn || !msg) return;
+                try {
+                    btn.disabled = true;
+                    msg.textContent = 'Sending verification email...';
+                    const res = await fetch(`${BASE_URL}/api/resend-verification`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email }),
+                        credentials: 'include'
+                    });
+
+                    const text = await res.text();
+                    let data = null;
+                    try { data = JSON.parse(text); } catch (e) { /* ignore */ }
+
+                    if (res.ok) {
+                        msg.style.color = '#155724';
+                        msg.textContent = (data && data.message) ? data.message : 'Verification email sent. Please check your inbox.';
+                        // Disable button for 60s to avoid spam
+                        btn.disabled = true;
+                        let wait = 60;
+                        const origText = btn.textContent;
+                        const interval = setInterval(() => {
+                            btn.textContent = `${origText} (${wait}s)`;
+                            wait -= 1;
+                            if (wait < 0) {
+                                clearInterval(interval);
+                                btn.textContent = origText;
+                                btn.disabled = false;
+                            }
+                        }, 1000);
+                    } else if (res.status === 429) {
+                        // Too many requests - server may include message with seconds remaining
+                        msg.style.color = '#856404';
+                        msg.textContent = (data && data.message) ? data.message : 'Too many requests. Please wait before trying again.';
+                        // keep button disabled briefly
+                        setTimeout(() => { btn.disabled = false; }, 5000);
+                    } else {
+                        msg.style.color = '#721c24';
+                        msg.textContent = (data && data.message) ? data.message : 'Failed to resend verification. Try again later.';
+                        btn.disabled = false;
+                    }
+                } catch (err) {
+                    console.error('Resend error', err);
+                    const msg = document.getElementById('resendMessage');
+                    if (msg) {
+                        msg.style.color = '#721c24';
+                        msg.textContent = 'Network error while resending verification.';
+                    }
+                    const btn = document.getElementById('resendBtn');
+                    if (btn) btn.disabled = false;
+                }
+            }
+
+            // ===== OTP verify for pending activation =====
+            function showOtpVerify(email, message) {
+                const section = document.getElementById('otpVerifySection');
+                const display = document.getElementById('otpVerifyEmailDisplay');
+                const msg = document.getElementById('otpVerifyMessage');
+                const btn = document.getElementById('otpVerifyBtn');
+                if (!section || !display || !msg || !btn) return;
+                display.textContent = email;
+                msg.textContent = message || '';
+                msg.style.color = '#333';
+                section.style.display = 'block';
+                btn.disabled = false;
+                btn.onclick = async (e) => {
+                    e.preventDefault();
+                    const code = document.getElementById('otpVerifyCode').value.trim();
+                    if (!code) { msg.style.color = '#721c24'; msg.textContent = 'Please enter the OTP code.'; return; }
+                    await verifyOtp(email, code);
+                };
+            }
+
+            async function verifyOtp(email, otp) {
+                const btn = document.getElementById('otpVerifyBtn');
+                const msg = document.getElementById('otpVerifyMessage');
+                if (!btn || !msg) return;
+                try {
+                    btn.disabled = true;
+                    msg.style.color = 'blue';
+                    msg.textContent = 'Verifying OTP...';
+                    const res = await fetch(`${BASE_URL}/api/verify-registration-otp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, otp }),
+                        credentials: 'include'
+                    });
+                    const text = await res.text();
+                    let data = null;
+                    try { data = JSON.parse(text); } catch (e) { /* ignore */ }
+
+                    if (res.ok && data && data.status === 'success') {
+                        msg.style.color = '#155724';
+                        msg.textContent = data.message || 'OTP verified. Your account is now active.';
+                        // hide otp/resend UI after success
+                        setTimeout(() => {
+                            const s = document.getElementById('otpVerifySection'); if (s) s.style.display = 'none';
+                            const r = document.getElementById('resendSection'); if (r) r.style.display = 'none';
+                        }, 1200);
+                    } else {
+                        msg.style.color = '#721c24';
+                        msg.textContent = (data && data.message) ? data.message : 'OTP invalid or expired.';
+                        btn.disabled = false;
+                    }
+                } catch (err) {
+                    console.error('Verify OTP error', err);
+                    msg.style.color = '#721c24';
+                    msg.textContent = 'Network error while verifying OTP.';
+                    btn.disabled = false;
+                }
+            }
+
+            // Load stations into the comment station select (based on session user's swap transactions)
+            async function loadStationsForSelect() {
+            console.log('🔵 loadStationsForSelect - STARTED');
+            const sel = document.getElementById('commentStation');
+            const statusBox = document.getElementById('commentStatus');
+            const textarea = document.getElementById('commentContent');
+            const submitBtn = document.querySelector("button[onclick='submitComment()']");
+            if (!sel) {
+                console.error('❌ commentStation select not found!');
+                return;
+            }
+            // default: disable comment form until we check
+            console.log('🔵 Resetting select and disabling form...');
+            sel.innerHTML = '<option value="">-- Chọn giao dịch --</option>';
+            sel.disabled = true;
+            if (textarea) textarea.disabled = true;
+            if (submitBtn) submitBtn.disabled = true;
+            statusBox.textContent = '';
+            console.log('🔵 Select reset, innerHTML:', sel.innerHTML);
+            try {
+            // call server to check swaps for the session user
+            const url = `${BASE_URL}/api/checkUserSwaps`;
+            console.log('DEBUG loadStationsForSelect - calling:', url);
+            const res = await fetch(url, { credentials: 'include' });
+            console.log('DEBUG loadStationsForSelect - response status:', res.status);
+            if (res.status === 401) {
+                statusBox.textContent = 'Vui lòng đăng nhập để gửi nhận xét.';
+                // hide comment card
+                document.getElementById('commentCard').style.display = 'none';
+                return;
+            }
+            if (res.status === 403) {
+                statusBox.textContent = 'Chỉ tài xế (Driver) được gửi nhận xét. Bạn không có quyền.';
+                document.getElementById('commentCard').style.display = 'none';
+                return;
+            }
+            if (res.status === 204) {
+                console.warn('DEBUG loadStationsForSelect - 204 No Content: No completed swaps found');
+                statusBox.textContent = 'Bạn chưa có giao dịch hoàn thành (Completed). Không thể gửi nhận xét.';
+                // keep comment card visible but disabled
+                document.getElementById('commentCard').style.display = 'block';
+                return;
+            }
+            if (!res.ok) {
+                // fallback: try to load all stations but keep comment disabled
+                console.error('DEBUG loadStationsForSelect - Error response:', res.status, res.statusText);
+                statusBox.textContent = 'Lỗi kiểm tra giao dịch: HTTP ' + res.status + ' - URL: ' + url;
+                return;
+            }
+            
+            // Try to get response body for debugging
+            const responseText = await res.text();
+            console.log('DEBUG loadStationsForSelect - Raw response:', responseText);
+            
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error('DEBUG loadStationsForSelect - Failed to parse JSON:', e);
+                statusBox.textContent = 'Lỗi: Server trả về dữ liệu không hợp lệ';
+                return;
+            }
+            
+            console.log('✅ DEBUG loadStationsForSelect - Parsed data:', data);
+            console.log('✅ DEBUG loadStationsForSelect - Is array?', Array.isArray(data));
+            console.log('✅ DEBUG loadStationsForSelect - Length:', data?.length);
+            if (!Array.isArray(data) || data.length === 0) {
+                console.warn('⚠️ Empty or invalid data array');
+                statusBox.textContent = 'Bạn chưa có giao dịch hoàn thành (Completed). Không thể gửi nhận xét.';
+                return;
+            }
+
+            // populate station select with swap options (each option = one completed swap)
+            console.log('🔵 Populating dropdown with', data.length, 'swaps...');
+            sel.innerHTML = '';
+            data.forEach((item, idx) => {
+                // Each item has swapId, stationId, name, address, totalBattery
+                const swapId = item.swapId;
+                const stationName = item.name || ('Station ' + item.stationId);
+                const stationAddress = item.address || 'Không có địa chỉ';
+                const opt = document.createElement('option');
+                opt.value = swapId;  // Store swapId as value
+                opt.text = stationName + ' (' + stationAddress + ')';
+                sel.appendChild(opt);
+                console.log(`  ✅ Added option ${idx + 1}: value=${swapId}, text="${opt.text}"`);
+            });
+            console.log('✅ Final select.innerHTML:', sel.innerHTML);
+
+            // show comment card and enable form
+            document.getElementById('commentCard').style.display = 'block';
+            sel.disabled = false;
+            if (textarea) textarea.disabled = false;
+            if (submitBtn) submitBtn.disabled = false;
+            statusBox.textContent = 'Bạn có lịch sử giao dịch hoàn thành. Vui lòng chọn giao dịch để gửi nhận xét.';
+
+            // if only 1 swap, preselect it
+            if (data.length === 1) {
+                sel.selectedIndex = 0;
+            }
+
+            } catch (err) {
+            console.warn('Không thể load station:', err);
+            statusBox.textContent = 'Lỗi khi kiểm tra giao dịch.';
+            }
+            }
+
+            async function submitComment() {
+            if (!loggedUserId) { alert('Vui lòng đăng nhập trước khi gửi nhận xét'); return; }
+            const swapId = document.getElementById('commentStation').value;
+            const content = document.getElementById('commentContent').value.trim();
+            if (!swapId) { alert('Vui lòng chọn giao dịch'); return; }
+            if (!content) { alert('Vui lòng nhập nội dung nhận xét'); return; }
+            console.log('DEBUG submitComment - swapId:', swapId, 'content:', content);
+            try {
+            const res = await fetch(`${BASE_URL}/api/comment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ swapId: parseInt(swapId, 10), content })
+            });
+            const txt = await res.text();
+            console.log('DEBUG submitComment - response:', txt);
+            document.getElementById('commentResult').textContent = txt;
+            } catch (err) {
+            console.error('DEBUG submitComment - error:', err);
+            document.getElementById('commentResult').textContent = '❌ Lỗi: ' + err;
+            }
+            }
+
+            // Admin: fetch all comments with enriched data (userName, stationName)
+            async function fetchCommentsForAdmin() {
+                console.log('DEBUG fetchCommentsForAdmin - called');
+                try {
+                    const res = await fetch(`${BASE_URL}/api/comment`, { credentials: 'include' });
+                    if (!res.ok) {
+                        document.getElementById('commentsList').textContent = 'Không thể lấy comments: HTTP ' + res.status;
+                        return;
+                    }
+                    const data = await res.json();
+                    console.log('DEBUG fetchCommentsForAdmin - data:', data);
+                    
+                    if (!Array.isArray(data) || data.length === 0) {
+                        document.getElementById('commentsList').textContent = 'Không có nhận xét nào.';
+                        return;
+                    }
+
+                    // Format: User Name, Content, Time Post, Station Name
+                    let html = '<div style="font-family: monospace;">';
+                    data.forEach((c, idx) => {
+                        const userName = c.userName || 'N/A';
+                        const stationName = c.stationName || 'N/A';
+                        const content = c.content || '';
+                        const timePost = c.timePost || c.time_Post || '';
+                        
+                        html += `<div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">`;
+                        html += `<strong>#${idx + 1}</strong><br>`;
+                        html += `<strong>User:</strong> ${userName}<br>`;
+                        html += `<strong>Station:</strong> ${stationName}<br>`;
+                        html += `<strong>Time:</strong> ${timePost}<br>`;
+                        html += `<strong>Content:</strong> ${content}<br>`;
+                        html += `</div>`;
+                    });
+                    html += '</div>';
+                    
+                    document.getElementById('commentsList').innerHTML = html;
+                } catch (err) {
+                    console.error('DEBUG fetchCommentsForAdmin - error:', err);
+                    document.getElementById('commentsList').textContent = '❌ Lỗi: ' + err;
+                }
+            }
+
+            // ===== Register =====
+            async function register() {
+            const fullName = document.getElementById("regName").value.trim();
+            const phone = document.getElementById("regPhone").value.trim();
+            const email = document.getElementById("regEmail").value.trim();
+            const password = document.getElementById("regPassword").value.trim();
+            const otp = document.getElementById("regOtpCode").value.trim(); // Get OTP from modal
+            
+            console.log('🔵 [register] Calling register API with:', { fullName, phone, email, password: '***', otp });
+            
+            try {
+            const res = await fetch(`${BASE_URL}/api/register`, {
+            method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ fullName, phone, email, password, otp })
+            });
+            
+            console.log('🔵 [register] API response status:', res.status);
+            const text = await res.text();
+            console.log('🔵 [register] API raw response:', text);
+            
+            document.getElementById("regResult").textContent = text;
+            
+            // If success, close modal and show success message
+            try {
+                const data = JSON.parse(text);
+                console.log('🔵 [register] Parsed response:', data);
+                
+                if (data.status === 'success') {
+                    console.log('✅ [register] Registration successful!');
+                    closeRegistrationOtpModal();
+                    alert('✅ Đăng ký thành công! Vui lòng đăng nhập.');
+                    // Clear form
+                    document.getElementById("regName").value = '';
+                    document.getElementById("regPhone").value = '';
+                    document.getElementById("regEmail").value = '';
+                    document.getElementById("regPassword").value = '';
+                    document.getElementById("regOtpCode").value = '';
+                } else {
+                    console.error('❌ [register] Registration failed:', data);
+                    document.getElementById('regOtpMsg').textContent = data.error || data.message || 'Đăng ký thất bại';
+                    document.getElementById('regOtpMsg').style.color = 'red';
+                }
+            } catch (e) {
+                // Not JSON, show as text
+                console.error('❌ [register] Response not JSON:', text);
+                document.getElementById('regOtpMsg').textContent = 'Lỗi: ' + text;
+                document.getElementById('regOtpMsg').style.color = 'red';
+            }
+            } catch (err) {
+                console.error('❌ [register] Fetch error:', err);
+                document.getElementById("regResult").textContent = "❌ Lỗi: " + err;
+                document.getElementById('regOtpMsg').textContent = 'Lỗi kết nối: ' + err;
+                document.getElementById('regOtpMsg').style.color = 'red';
+            }
+            }
+
+            // ===== Registration OTP Modal Handlers =====
+            function openRegistrationOtpModal() {
+                // Validate form first
+                const fullName = document.getElementById("regName").value.trim();
+                const phone = document.getElementById("regPhone").value.trim();
+                const email = document.getElementById("regEmail").value.trim();
+                const password = document.getElementById("regPassword").value.trim();
+                
+                if (!fullName) { alert('Vui lòng nhập họ tên'); return; }
+                if (!phone) { alert('Vui lòng nhập số điện thoại'); return; }
+                if (!email) { alert('Vui lòng nhập email'); return; }
+                if (!password) { alert('Vui lòng nhập mật khẩu'); return; }
+                
+                // Open modal and populate email
+                const modal = document.getElementById('registrationOtpModal');
+                if (!modal) {
+                    console.error('registrationOtpModal element not found!');
+                    return;
+                }
+                
+                // Pre-fill email from registration form
+                document.getElementById('regOtpEmail').value = email;
+                document.getElementById('regOtpEmailDisplay').textContent = email;
+                
+                // Reset modal state
+                modal.style.display = 'block';
+                document.getElementById('regOtpStep1').style.display = 'block';
+                document.getElementById('regOtpStep2').style.display = 'none';
+                document.getElementById('regOtpMsg').textContent = '';
+                document.getElementById('regOtpCode').value = '';
+                
+                console.log('Registration OTP Modal opened, email:', email);
+            }
+
+            function closeRegistrationOtpModal() {
+                document.getElementById('registrationOtpModal').style.display = 'none';
+            }
+
+            async function regOtpSendOtp() {
+                const email = document.getElementById('regOtpEmail').value.trim();
+                if (!email) { alert('Vui lòng nhập email'); return; }
+                
+                document.getElementById('regOtpMsg').textContent = 'Đang gửi OTP...';
+                document.getElementById('regOtpMsg').style.color = 'blue';
+                
+                try {
+                    const res = await fetch(`${BASE_URL}/api/send-registration-otp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email })
+                    });
+                    const data = await res.json();
+                    
+                    console.log('Send OTP response:', data);
+                    
+                    if (res.ok && data.status === 'success') {
+                        // ✅ Success: Show message in green
+                        document.getElementById('regOtpMsg').innerHTML = 
+                            `<div style="color: green; font-weight: bold;">✅ ${data.message}</div>` +
+                            `<div style="color: gray; font-size: 12px; margin-top: 5px;">${JSON.stringify(data)}</div>`;
+                        
+                        // Move to step 2
+                        document.getElementById('regOtpStep1').style.display = 'none';
+                        document.getElementById('regOtpStep2').style.display = 'block';
+                    } else {
+                        // ❌ Fail: Show message in red
+                        document.getElementById('regOtpMsg').innerHTML = 
+                            `<div style="color: red; font-weight: bold;">❌ ${data.message || 'Không thể gửi OTP'}</div>` +
+                            `<div style="color: gray; font-size: 12px; margin-top: 5px;">${JSON.stringify(data)}</div>`;
+                    }
+                } catch (err) {
+                    document.getElementById('regOtpMsg').innerHTML = 
+                        `<div style="color: red; font-weight: bold;">❌ Lỗi: ${err}</div>`;
+                }
+            }
+
+            async function regOtpVerifyAndRegister() {
+                const email = document.getElementById('regOtpEmail').value.trim();
+                const otp = document.getElementById('regOtpCode').value.trim();
+                
+                if (!otp) { alert('Vui lòng nhập mã OTP'); return; }
+                if (otp.length !== 6) { alert('Mã OTP phải có 6 chữ số'); return; }
+                
+                console.log('🔵 [regOtpVerifyAndRegister] Starting verification for email:', email, 'OTP:', otp);
+                document.getElementById('regOtpMsg').textContent = 'Đang xác thực OTP...';
+                document.getElementById('regOtpMsg').style.color = 'blue';
+                
+                try {
+                    // Step 1: Verify OTP
+                    console.log('🔵 [Step 1] Calling verify-registration-otp API...');
+                    const verifyRes = await fetch(`${BASE_URL}/api/verify-registration-otp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, otp })
+                    });
+                    
+                    console.log('🔵 [Step 1] Verify API response status:', verifyRes.status);
+                    const verifyText = await verifyRes.text();
+                    console.log('🔵 [Step 1] Verify API raw response:', verifyText);
+                    
+                    let verifyData;
+                    try {
+                        verifyData = JSON.parse(verifyText);
+                    } catch (e) {
+                        console.error('❌ Failed to parse verify response:', e);
+                        document.getElementById('regOtpMsg').innerHTML = 
+                            `<div style="color: red; font-weight: bold;">❌ Lỗi: Server trả về dữ liệu không hợp lệ</div>`;
+                        return;
+                    }
+                    
+                    if (!verifyRes.ok || verifyData.status !== 'success') {
+                        console.error('❌ OTP verification failed:', verifyData);
+                        // ❌ Fail: Show message in red
+                        document.getElementById('regOtpMsg').innerHTML = 
+                            `<div style="color: red; font-weight: bold;">❌ ${verifyData.message || 'Mã OTP không hợp lệ hoặc đã hết hạn'}</div>` +
+                            `<div style="color: gray; font-size: 12px; margin-top: 5px;">${JSON.stringify(verifyData)}</div>`;
+                        return;
+                    }
+                    
+                    // Step 2: OTP valid, proceed with registration
+                    console.log('✅ [Step 1] OTP verified successfully!');
+                    // ✅ Success: Show message in green
+                    document.getElementById('regOtpMsg').innerHTML = 
+                        `<div style="color: green; font-weight: bold;">✅ ${verifyData.message}</div>` +
+                        `<div style="color: gray; font-size: 12px; margin-top: 5px;">${JSON.stringify(verifyData)}</div>` +
+                        `<div style="color: blue; margin-top: 10px;">Đang đăng ký...</div>`;
+                    
+                    // Wait a bit to show success message
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Step 3: Call register function
+                    console.log('🔵 [Step 2] Calling register function...');
+                    await register();
+                    
+                } catch (err) {
+                    console.error('❌ Error in regOtpVerifyAndRegister:', err);
+                    document.getElementById('regOtpMsg').innerHTML = 
+                        `<div style="color: red; font-weight: bold;">❌ Lỗi: ${err}</div>`;
+                }
+            }
+
+            // ===== Get Packages =====
+            async function getPackages() {
+            try {
+            const res = await fetch(`${BASE_URL}/api/getpackages`);
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            const data = await res.json();
+            const listDiv = document.getElementById("packagesList");
+            listDiv.innerHTML = "";
+            data.forEach(pkg => {
+            const div = document.createElement("div");
+            div.className = "package-item";
+            div.innerHTML = `
+                  <b>Gói ${pkg.packageId}:</b> ${pkg.name} - Giá: ${pkg.price} VND
+                  <button onclick="buyPackage(${pkg.packageId}, ${pkg.price})">Mua ngay</button>
+                `;
+            listDiv.appendChild(div);
+            });
+            document.getElementById("packagesResult").textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+            document.getElementById("packagesResult").textContent = "❌ Lỗi: " + err;
+            }
+            }
+
+            // ===== Buy Package =====
+            function buyPackage(packageId, amount) {
+            if (!loggedUserId) {
+            alert("⚠️ Vui lòng đăng nhập trước khi mua gói pin!");
+            return;
+            }
+            const params = new URLSearchParams({
+            userId: loggedUserId,
+                    packageId: packageId,
+                    amount: amount,
+                    orderType: "buyPackage"
+            });
+            window.location.href = `${BASE_URL}/payment?${params.toString()}`;
+            }
+
+            // ===== Preview ảnh cà vẹt =====
+            function previewCarDoc(event) {
+            const file = event.target.files[0];
+            if (!file) {
+            document.getElementById("previewBox").style.display = "none";
+            return;
+            }
+            const reader = new FileReader();
+            reader.onload = e => {
+            document.getElementById("previewImg").src = e.target.result;
+            document.getElementById("previewBox").style.display = "block";
+            };
+            reader.readAsDataURL(file);
+            }
+
+            // ===== Link Vehicle =====
+            async function linkVehicle() {
+            const model = document.getElementById("model").value;
+            const batteryType = document.getElementById("batteryType").value;
+            const fileInput = document.getElementById("carDoc");
+            if (!loggedUserId) {
+            alert("⚠️ Vui lòng đăng nhập trước khi liên kết xe!");
+            return;
+            }
+            if (fileInput.files.length === 0) {
+            alert("⚠️ Vui lòng chọn ảnh cà vẹt!");
+            return;
+            }
+
+            const formData = new FormData();
+            formData.append("model", model);
+            formData.append("batteryType", batteryType);
+            formData.append("carDoc", fileInput.files[0]);
+            formData.append("userId", loggedUserId);
+            try {
+            const res = await fetch(`${BASE_URL}/api/linkVehicleController`, {
+            method: "POST",
+                    body: formData,
+                    credentials: "include"
+            });
+            const text = await res.text();
+            document.getElementById("linkResult").textContent = text || "⚠️ Server không trả dữ liệu nào";
+            try {
+            const data = JSON.parse(text);
+            alert("✅ Liên kết xe thành công!");
+            console.log("Kết quả JSON:", data);
+            } catch {
+            console.warn("⚠️ Phản hồi không phải JSON:", text);
+            }
+            } catch (err) {
+            document.getElementById("linkResult").textContent = "❌ Lỗi fetch: " + err;
+            }
+            }
+
+            // ===== Forgot Password UI Handlers =====
+            function openForgotModal() {
+                console.log('openForgotModal called!');
+                const modal = document.getElementById('forgotModal');
+                if (!modal) {
+                    console.error('forgotModal element not found!');
+                    return;
+                }
+                modal.style.display = 'block';
+                document.getElementById('forgotStep1').style.display = 'block';
+                document.getElementById('forgotStep2').style.display = 'none';
+                document.getElementById('forgotStep3').style.display = 'none';
+                document.getElementById('forgotMsg').textContent = '';
+                console.log('Modal opened, display:', modal.style.display);
+            }
+
+            function closeForgotModal() {
+                document.getElementById('forgotModal').style.display = 'none';
+            }
+
+            async function fpSendOtp() {
+                const email = document.getElementById('fpEmail').value.trim();
+                if (!email) { alert('Vui lòng nhập email'); return; }
+                try {
+                    const res = await fetch(`${BASE_URL}/api/forgot-password`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email })
+                    });
+                    const txt = await res.text();
+                    document.getElementById('forgotMsg').textContent = txt;
+                    if (res.ok) {
+                        document.getElementById('forgotStep1').style.display = 'none';
+                        document.getElementById('forgotStep2').style.display = 'block';
+                    }
+                } catch (err) {
+                    document.getElementById('forgotMsg').textContent = 'Lỗi: ' + err;
+                }
+            }
+
+            async function fpVerifyOtp() {
+                const email = document.getElementById('fpEmail').value.trim();
+                const otp = document.getElementById('fpOtp').value.trim();
+                if (!otp) { alert('Vui lòng nhập OTP'); return; }
+                try {
+                    const res = await fetch(`${BASE_URL}/api/verify-otp`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, otp })
+                    });
+                    const txt = await res.text();
+                    document.getElementById('forgotMsg').textContent = txt;
+                    if (res.ok) {
+                        document.getElementById('forgotStep2').style.display = 'none';
+                        document.getElementById('forgotStep3').style.display = 'block';
+                    }
+                } catch (err) {
+                    document.getElementById('forgotMsg').textContent = 'Lỗi: ' + err;
+                }
+            }
+
+            async function fpResetPassword() {
+                const email = document.getElementById('fpEmail').value.trim();
+                const otp = document.getElementById('fpOtp').value.trim();
+                const newPassword = document.getElementById('fpNewPassword').value;
+                if (!newPassword) { alert('Vui lòng nhập mật khẩu mới'); return; }
+                try {
+                    const res = await fetch(`${BASE_URL}/api/reset-password`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, otp, newPassword })
+                    });
+                    const txt = await res.text();
+                    document.getElementById('forgotMsg').textContent = txt;
+                    if (res.ok) {
+                        // success: close modal after short delay
+                        setTimeout(() => { closeForgotModal(); }, 1500);
+                    }
+                } catch (err) {
+                    document.getElementById('forgotMsg').textContent = 'Lỗi: ' + err;
+                }
+            }
+        </script>
+
+    </body>
+</html>

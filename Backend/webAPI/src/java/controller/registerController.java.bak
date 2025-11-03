@@ -1,0 +1,84 @@
+package controller;
+
+import DAO.UsersDAO;
+import DTO.Users;
+import com.google.gson.Gson;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import mylib.ValidationUtil;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+
+@WebServlet("/api/register-old-deprecated")
+public class registerController extends HttpServlet {
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+
+        resp.setContentType("application/json;charset=UTF-8");
+        resp.setHeader("Access-Control-Allow-Origin", "*");
+
+        try (BufferedReader reader = req.getReader();
+             PrintWriter out = resp.getWriter()) {
+
+            Gson gson = new Gson();
+            Users input = gson.fromJson(reader, Users.class);
+
+            if (input == null) {
+                resp.setStatus(400);
+                out.print("{\"error\":\"Invalid input\"}");
+                return;
+            }
+
+            // Validate full name
+            if (!ValidationUtil.isValidFullName(input.getFullName())) {
+                resp.setStatus(400);
+                out.print("{\"error\":\"Full name is invalid\"}");
+                return;
+            }
+
+            // validate phone (Vietnam)
+            if (!ValidationUtil.isValidVNPhone(input.getPhone())) {
+                resp.setStatus(400);
+                out.print("{\"error\":\"Phone number is not a valid VN mobile number\"}");
+                return;
+            }
+
+            // validate email
+            if (!ValidationUtil.isValidEmail(input.getEmail())) {
+                resp.setStatus(400);
+                out.print("{\"error\":\"Email is invalid\"}");
+                return;
+            }
+
+            // validate password
+            if (!ValidationUtil.isValidPassword(input.getPassword())) {
+                resp.setStatus(400);
+                out.print("{\"error\":\"Password must be at least 6 characters, include letters and digits\"}");
+                return;
+            }
+
+            UsersDAO dao = new UsersDAO();
+            if (dao.existsByEmail(input.getEmail())) {
+                resp.setStatus(409);
+                out.print("{\"error\":\"Email already exists\"}");
+                return;
+            }
+
+            // assign default role & station
+            input.setRole("Driver");
+            input.setStationId(null);
+
+            int newId = dao.insertUser(input);
+
+            resp.setStatus(201);
+            out.print("{\"status\":\"success\",\"userId\":" + newId + ",\"role\":\"Driver\"}");
+        }
+    }
+}

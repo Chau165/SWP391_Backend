@@ -1,0 +1,9 @@
+.admin-dashboard { padding: 24px; max-width: 1100px; margin: 0 auto; }
+.admin-dashboard .panel { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 18px; overflow: hidden }
+.admin-dashboard .panel-header { padding: 14px 18px; border-bottom: 1px solid #f0f0f5 }
+.admin-dashboard .panel-body { padding: 16px 18px }
+.admin-dashboard .muted { color: #6c757d }
+.admin-dashboard .error { color: #c0392b }
+.stations-table { width: 100%; border-collapse: collapse; }
+.stations-table th, .stations-table td { padding: 10px 8px; border-bottom: 1px solid #eef0f2; text-align: left }
+.stations-table th { background: #fafbfc; font-weight: 700 }

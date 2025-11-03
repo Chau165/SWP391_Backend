@@ -1,7 +1,7 @@
-# Compiled class file
+# Java compiled files
 *.class
 
-# Log file
+# Log files
 *.log
 
 # BlueJ files
@@ -10,7 +10,7 @@
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
-# Package Files #
+# Package Files
 *.jar
 *.war
 *.nar
@@ -19,7 +19,28 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Virtual machine crash logs
 hs_err_pid*
 replay_pid*
+
+# SQL test and diagnostic files
+*.sql
+
+# Markdown note files (keep README only)
+*.md
+!README.md
+
+# NetBeans build files
+Backend/webAPI/build/
+Backend/webAPI/dist/
+Backend/webAPI/nbproject/private/
 /dist/
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db

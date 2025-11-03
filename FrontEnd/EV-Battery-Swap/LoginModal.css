@@ -1,0 +1,30 @@
+
+/* 9. Nut Quen mat khau */
+.forgot-password-button {
+    width: 100%;
+    background: transparent;
+    color: #165ba0;
+    padding: 10px;
+    border: 2px solid #165ba0;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.forgot-password-button:hover {
+    background: #165ba0;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(22, 91, 160, 0.3);
+}
+
+.forgot-password-button:active {
+    transform: translateY(0);
+}
