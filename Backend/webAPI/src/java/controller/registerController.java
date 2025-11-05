@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import mylib.ValidationUtil;
+import mylib.RecaptchaVerifier;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -66,6 +67,12 @@ public class registerController extends HttpServlet {
                 return;
             }
 
+            // ✅ NO CAPTCHA VERIFICATION AT FINAL REGISTRATION!
+            // CAPTCHA was already verified at initial register form submission.
+            // At this stage, we ONLY verify OTP - no need for CAPTCHA token.
+            System.out.println("[registerController] Final registration API called for email: " + input.email);
+            System.out.println("[registerController] ✅ CAPTCHA verification SKIPPED (already verified at register form)");
+
             // ✅ BƯỚC MỚI: Xác thực OTP trước khi đăng ký
             if (input.otp == null || input.otp.trim().isEmpty()) {
                 resp.setStatus(400);
@@ -108,6 +115,9 @@ public class registerController extends HttpServlet {
             user.setPassword(input.password);
             user.setRole("Driver");
             user.setStationId(null);
+            // Set account status to Active immediately after successful OTP verification
+            // Only two valid statuses in the system: 'Active' and 'Blocked'
+            user.setStatus("Active");
 
             // Thêm user vào database
             int newId = dao.insertUser(user);
@@ -146,6 +156,8 @@ public class registerController extends HttpServlet {
         String phone;
         String email;
         String password;
-        String otp;  // ✅ Thêm field OTP
+        String otp;  // ✅ OTP is required for final registration
+        // ✅ gRecaptchaResponse field REMOVED - no CAPTCHA verification at final registration
+        // CAPTCHA is only verified once at initial register form submission
     }
 }
